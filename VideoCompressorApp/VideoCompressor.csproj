@@ -11,6 +11,11 @@
     <RootNamespace>VideoCompressor</RootNamespace>
     <Platforms>x64</Platforms>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <ApplicationIcon>app.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="app.ico"/>
+  </ItemGroup>
 
 </Project>

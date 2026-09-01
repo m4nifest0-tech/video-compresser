@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -15,6 +16,7 @@ public partial class MainWindow : Window
 
     public record CodecOption(string Label, string Value);
     public record LevelOption(string Label, int Cq);
+    public record ThemeOption(string Label, string Value);
 
     private static readonly CodecOption[] Codecs =
     {
@@ -31,9 +33,25 @@ public partial class MainWindow : Window
         new("Compressione massima (file piu piccolo)", 36),
     };
 
+    private static readonly ThemeOption[] ThemeModes =
+    {
+        new("Chiaro", "Light"),
+        new("Scuro", "Dark"),
+    };
+
+    private static readonly ThemeOption[] AccentColors =
+    {
+        new("Blu", "Blue"),
+        new("Verde", "Green"),
+        new("Viola", "Purple"),
+        new("Arancione", "Orange"),
+    };
+
     private readonly ObservableCollection<VideoItem> _items = new();
     private readonly FfmpegService _ffmpeg = new();
     private CancellationTokenSource? _cts;
+    private Stopwatch? _batchStopwatch;
+    private bool _themeUiReady;
 
     public MainWindow()
     {
@@ -44,6 +62,56 @@ public partial class MainWindow : Window
         CodecCombo.SelectedIndex = 0;
         LevelCombo.ItemsSource = Levels;
         LevelCombo.SelectedIndex = 2;
+
+        ThemeModeCombo.ItemsSource = ThemeModes;
+        AccentColorCombo.ItemsSource = AccentColors;
+
+        var settings = App.Settings;
+        ThemeModeCombo.SelectedItem = ThemeModes.FirstOrDefault(t => t.Value == settings.ThemeMode) ?? ThemeModes[0];
+        AccentColorCombo.SelectedItem = AccentColors.FirstOrDefault(a => a.Value == settings.AccentColor) ?? AccentColors[0];
+        _themeUiReady = true;
+    }
+
+    private void ThemeCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (!_themeUiReady) return;
+        if (ThemeModeCombo.SelectedItem is not ThemeOption theme) return;
+        if (AccentColorCombo.SelectedItem is not ThemeOption accent) return;
+
+        ThemeManager.Apply(theme.Value, accent.Value);
+        App.Settings.ThemeMode = theme.Value;
+        App.Settings.AccentColor = accent.Value;
+        App.Settings.Save();
+    }
+
+    private static string FormatTimeSpan(TimeSpan ts)
+    {
+        if (ts.TotalHours >= 1) return $"{(int)ts.TotalHours}h {ts.Minutes}m rimanenti";
+        if (ts.TotalMinutes >= 1) return $"{(int)ts.TotalMinutes}m {ts.Seconds}s rimanenti";
+        return $"{Math.Max(0, ts.Seconds)}s rimanenti";
+    }
+
+    private void UpdateEta(int doneCount, double currentItemPercent)
+    {
+        if (_batchStopwatch == null || _items.Count == 0)
+        {
+            EtaLabel.Text = "";
+            return;
+        }
+
+        double completedUnits = doneCount + currentItemPercent / 100.0;
+        if (completedUnits < 0.02)
+        {
+            EtaLabel.Text = "Stima tempo rimanente: calcolo...";
+            return;
+        }
+
+        var elapsed = _batchStopwatch.Elapsed;
+        var estimatedTotalTicks = (long)(elapsed.Ticks / completedUnits * _items.Count);
+        var remaining = TimeSpan.FromTicks(estimatedTotalTicks) - elapsed;
+        if (remaining < TimeSpan.Zero) remaining = TimeSpan.Zero;
+
+        EtaLabel.Text = FormatTimeSpan(remaining);
     }
 
     private void AddFiles_Click(object sender, RoutedEventArgs e)
@@ -160,6 +228,8 @@ public partial class MainWindow : Window
         OverallProgress.Minimum = 0;
         OverallProgress.Maximum = _items.Count;
         OverallProgress.Value = 0;
+        _batchStopwatch = Stopwatch.StartNew();
+        EtaLabel.Text = "Stima tempo rimanente: calcolo...";
 
         int done = 0;
         foreach (var item in _items)
@@ -180,6 +250,7 @@ public partial class MainWindow : Window
                     item.ProgressPercent = 100;
                     done++;
                     OverallProgress.Value = done;
+                    UpdateEta(done, 0);
                     continue;
                 }
                 dest = UniqueDestPath(dest);
@@ -197,7 +268,11 @@ public partial class MainWindow : Window
             try
             {
                 exitCode = await _ffmpeg.CompressAsync(item.SourcePath, dest, codec.Value, level.Cq, duration,
-                    pct => Dispatcher.Invoke(() => item.ProgressPercent = pct),
+                    pct => Dispatcher.Invoke(() =>
+                    {
+                        item.ProgressPercent = pct;
+                        UpdateEta(done, pct);
+                    }),
                     _cts.Token);
             }
             catch (OperationCanceledException)
@@ -229,9 +304,12 @@ public partial class MainWindow : Window
 
             done++;
             OverallProgress.Value = done;
+            UpdateEta(done, 0);
         }
 
         StatusLabel.Text = _cts.Token.IsCancellationRequested ? "Annullato." : "Completato.";
+        EtaLabel.Text = "";
+        _batchStopwatch = null;
         StartButton.IsEnabled = true;
         CancelButton.IsEnabled = false;
         _cts = null;
