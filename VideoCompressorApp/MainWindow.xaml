@@ -1,0 +1,78 @@
+<Window x:Class="VideoCompressor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Compressore Video (GPU NVENC)" Height="680" Width="920" MinHeight="580" MinWidth="800">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,8">
+            <Button Content="Aggiungi file..." Click="AddFiles_Click" Padding="10,5" Margin="0,0,6,0"/>
+            <Button Content="Aggiungi cartella..." Click="AddFolder_Click" Padding="10,5" Margin="0,0,6,0"/>
+            <Button Content="Rimuovi selezionati" Click="RemoveSelected_Click" Padding="10,5" Margin="0,0,6,0"/>
+            <Button Content="Svuota lista" Click="ClearList_Click" Padding="10,5"/>
+        </StackPanel>
+
+        <DataGrid x:Name="FilesGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True"
+                  SelectionMode="Extended" CanUserAddRows="False" Margin="0,0,0,8" RowHeaderWidth="0">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="File" Binding="{Binding FileName}" Width="300"/>
+                <DataGridTextColumn Header="Dimensione originale" Binding="{Binding OriginalSizeText}" Width="140"/>
+                <DataGridTextColumn Header="Stato" Binding="{Binding Status}" Width="110"/>
+                <DataGridTextColumn Header="Avanzamento" Binding="{Binding ProgressText}" Width="110"/>
+                <DataGridTextColumn Header="Dimensione finale" Binding="{Binding ResultSizeText}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Grid Grid.Row="2" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Label Content="Cartella destinazione:" Grid.Column="0" VerticalAlignment="Center"/>
+            <TextBox x:Name="DestTextBox" Grid.Column="1" VerticalAlignment="Center" Margin="6,0" Padding="4"/>
+            <Button Content="Sfoglia..." Grid.Column="2" Click="BrowseDest_Click" Padding="10,5"/>
+        </Grid>
+
+        <Grid Grid.Row="3" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Label Content="Codec:" Grid.Column="0" VerticalAlignment="Center"/>
+            <ComboBox x:Name="CodecCombo" Grid.Column="1" Width="270" Margin="4,0,20,0" DisplayMemberPath="Label"/>
+            <Label Content="Livello compressione:" Grid.Column="2" VerticalAlignment="Center"/>
+            <ComboBox x:Name="LevelCombo" Grid.Column="3" Width="300" Margin="4,0" DisplayMemberPath="Label"/>
+        </Grid>
+
+        <StackPanel Grid.Row="4" Margin="0,0,0,8">
+            <CheckBox x:Name="PreserveStructureCheck" Content="Mantieni struttura cartelle (per elementi aggiunti da cartella)" IsChecked="True" Margin="0,3"/>
+            <CheckBox x:Name="SkipExistingCheck" Content="Salta se il file di destinazione esiste gia" IsChecked="True" Margin="0,3"/>
+            <CheckBox x:Name="DeleteSourceCheck" Content="Elimina l'originale dopo compressione riuscita (irreversibile)" Margin="0,3"/>
+        </StackPanel>
+
+        <Grid Grid.Row="5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <ProgressBar x:Name="OverallProgress" Grid.Row="0" Height="20" Minimum="0"/>
+            <TextBlock x:Name="StatusLabel" Grid.Row="1" Text="Pronto." Margin="0,5"/>
+            <StackPanel Grid.Row="2" Orientation="Horizontal">
+                <Button x:Name="StartButton" Content="Avvia compressione" Click="Start_Click" Padding="12,7" Margin="0,0,6,0"/>
+                <Button x:Name="CancelButton" Content="Annulla" Click="Cancel_Click" Padding="12,7" IsEnabled="False"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>
