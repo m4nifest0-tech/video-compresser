@@ -14,7 +14,7 @@ App desktop **C# / WPF (.NET 8)** con interfaccia grafica:
 
 | Tema chiaro | Tema scuro |
 |---|---|
-| ![Tema chiaro](docs/screenshot-light.png) | ![Tema scuro](docs/screenshot-dark.png) |
+| ![Tema chiaro](https://github.com/m4nifest0-tech/video-compresser/releases/download/v1.1.0/screenshot-light.png) | ![Tema scuro](https://github.com/m4nifest0-tech/video-compresser/releases/download/v1.1.0/screenshot-dark.png) |
 
 Build/pubblicazione come `.exe` singolo self-contained (richiede [.NET 8 SDK](https://dotnet.microsoft.com/download)):
 
