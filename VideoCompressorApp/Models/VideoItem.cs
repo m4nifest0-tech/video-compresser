@@ -39,6 +39,25 @@ public class VideoItem : INotifyPropertyChanged
 
     public string ResultSizeText => ResultSize.HasValue ? FormatSize(ResultSize.Value) : "-";
 
+    private long? _estimatedSize;
+    public long? EstimatedSize
+    {
+        get => _estimatedSize;
+        set { _estimatedSize = value; OnPropertyChanged(); OnPropertyChanged(nameof(EstimatedSizeText)); }
+    }
+
+    public string EstimatedSizeText
+    {
+        get
+        {
+            if (!EstimatedSize.HasValue) return "-";
+            if (OriginalSize <= 0) return FormatSize(EstimatedSize.Value);
+            double change = 100.0 * (1 - (double)EstimatedSize.Value / OriginalSize);
+            string sign = change >= 0 ? "-" : "+";
+            return $"{FormatSize(EstimatedSize.Value)} ({sign}{Math.Abs(change):0}%)";
+        }
+    }
+
     public VideoItem(string sourcePath, string? baseRoot)
     {
         SourcePath = sourcePath;

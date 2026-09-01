@@ -64,6 +64,80 @@ public class FfmpegService
         }
     }
 
+    /// <summary>
+    /// Codifica un breve campione (attorno al 30% della durata) con le impostazioni scelte
+    /// e ne misura il bitrate risultante, per stimare la dimensione finale dell'intero file
+    /// senza dover attendere la compressione completa.
+    /// </summary>
+    public async Task<long?> EstimateOutputSizeAsync(string sourcePath, string codec, int cq,
+        double durationSeconds, CancellationToken ct)
+    {
+        if (durationSeconds <= 0) return null;
+
+        double sampleSeconds = Math.Min(5, durationSeconds);
+        double start = Math.Max(0, durationSeconds * 0.3 - sampleSeconds / 2);
+        string tempFile = Path.Combine(Path.GetTempPath(), $"vc_sample_{Guid.NewGuid():N}.mp4");
+
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "ffmpeg",
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+
+            string[] args =
+            {
+                "-y", "-hide_banner", "-loglevel", "error",
+                "-ss", start.ToString(CultureInfo.InvariantCulture),
+                "-i", sourcePath,
+                "-t", sampleSeconds.ToString(CultureInfo.InvariantCulture),
+                "-c:v", codec,
+                "-preset", "p7",
+                "-rc", "vbr",
+                "-cq", cq.ToString(CultureInfo.InvariantCulture),
+                "-b:v", "0",
+                "-spatial-aq", "1",
+                "-temporal-aq", "1",
+                "-aq-strength", "8",
+                "-rc-lookahead", "20",
+                "-c:a", "aac",
+                "-b:a", "160k",
+                tempFile,
+            };
+            foreach (var a in args) psi.ArgumentList.Add(a);
+
+            using var proc = new Process { StartInfo = psi };
+            proc.Start();
+            var stderrTask = proc.StandardError.ReadToEndAsync();
+
+            using var registration = ct.Register(() =>
+            {
+                try { if (!proc.HasExited) proc.Kill(true); }
+                catch { /* processo forse gia' terminato */ }
+            });
+
+            await proc.WaitForExitAsync(CancellationToken.None);
+            try { await stderrTask; } catch { /* ignora */ }
+
+            if (ct.IsCancellationRequested || proc.ExitCode != 0 || !File.Exists(tempFile)) return null;
+
+            long sampleBytes = new FileInfo(tempFile).Length;
+            return (long)(sampleBytes / sampleSeconds * durationSeconds);
+        }
+        catch
+        {
+            return null;
+        }
+        finally
+        {
+            try { if (File.Exists(tempFile)) File.Delete(tempFile); }
+            catch { /* file forse ancora in uso */ }
+        }
+    }
+
     public async Task<int> CompressAsync(string sourcePath, string destPath, string codec, int cq,
         double? durationSeconds, Action<double> onProgress, CancellationToken ct)
     {

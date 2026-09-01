@@ -22,6 +22,7 @@ public partial class MainWindow : Window
     {
         new("H.264 (massima compatibilita)", "h264_nvenc"),
         new("H.265 / HEVC (file piu piccoli)", "hevc_nvenc"),
+        new("AV1 (compressione migliore, richiede RTX serie 40+)", "av1_nvenc"),
     };
 
     private static readonly LevelOption[] Levels =
@@ -71,6 +72,12 @@ public partial class MainWindow : Window
         ThemeModeCombo.SelectedItem = ThemeModes.FirstOrDefault(t => t.Value == settings.ThemeMode) ?? ThemeModes[0];
         AccentColorCombo.SelectedItem = AccentColors.FirstOrDefault(a => a.Value == settings.AccentColor) ?? AccentColors[0];
         _themeUiReady = true;
+    }
+
+    private void CodecOrLevel_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        foreach (var item in _items) item.EstimatedSize = null;
+        if (EstimateSummaryLabel != null) EstimateSummaryLabel.Text = "";
     }
 
     private void ThemeCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -196,6 +203,85 @@ public partial class MainWindow : Window
         }
         var name = Path.GetFileNameWithoutExtension(item.SourcePath) + ".mp4";
         return Path.Combine(destDir, name);
+    }
+
+    private async void Estimate_Click(object sender, RoutedEventArgs e)
+    {
+        if (_items.Count == 0)
+        {
+            MessageBox.Show("Aggiungi almeno un file o una cartella.", "Lista vuota",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (!FfmpegService.IsFfmpegAvailable())
+        {
+            MessageBox.Show("ffmpeg non e stato trovato nel PATH. Installalo e riprova.", "ffmpeg non trovato",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        var codec = (CodecOption)CodecCombo.SelectedItem;
+        var level = (LevelOption)LevelCombo.SelectedItem;
+
+        _cts = new CancellationTokenSource();
+        EstimateButton.IsEnabled = false;
+        StartButton.IsEnabled = false;
+        CancelButton.IsEnabled = true;
+        EstimateSummaryLabel.Text = "";
+        OverallProgress.Minimum = 0;
+        OverallProgress.Maximum = _items.Count;
+        OverallProgress.Value = 0;
+
+        long totalOriginal = 0;
+        long totalEstimated = 0;
+        int estimatedCount = 0;
+        int done = 0;
+
+        foreach (var item in _items)
+        {
+            if (_cts.Token.IsCancellationRequested) break;
+
+            StatusLabel.Text = $"Stima [{done + 1}/{_items.Count}] {item.FileName}";
+            var duration = await _ffmpeg.GetDurationSecondsAsync(item.SourcePath, _cts.Token);
+            var estimate = duration.HasValue
+                ? await _ffmpeg.EstimateOutputSizeAsync(item.SourcePath, codec.Value, level.Cq, duration.Value, _cts.Token)
+                : null;
+
+            item.EstimatedSize = estimate;
+            if (estimate.HasValue && item.OriginalSize > 0)
+            {
+                totalOriginal += item.OriginalSize;
+                totalEstimated += estimate.Value;
+                estimatedCount++;
+            }
+
+            done++;
+            OverallProgress.Value = done;
+        }
+
+        if (_cts.Token.IsCancellationRequested)
+        {
+            StatusLabel.Text = "Stima annullata.";
+        }
+        else if (estimatedCount > 0)
+        {
+            double change = 100.0 * (1 - (double)totalEstimated / totalOriginal);
+            string sign = change >= 0 ? "-" : "+";
+            EstimateSummaryLabel.Text =
+                $"Stima totale: {VideoItem.FormatSize(totalEstimated)} ({sign}{Math.Abs(change):0}% rispetto a {VideoItem.FormatSize(totalOriginal)}) su {estimatedCount}/{_items.Count} file";
+            StatusLabel.Text = "Stima completata.";
+        }
+        else
+        {
+            StatusLabel.Text = "Impossibile stimare: verifica che il codec scelto sia supportato dalla GPU.";
+        }
+
+        OverallProgress.Value = 0;
+        EstimateButton.IsEnabled = true;
+        StartButton.IsEnabled = true;
+        CancelButton.IsEnabled = false;
+        _cts = null;
     }
 
     private async void Start_Click(object sender, RoutedEventArgs e)

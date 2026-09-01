@@ -53,6 +53,7 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Stima output" Binding="{Binding EstimatedSizeText}" Width="130"/>
                 <DataGridTextColumn Header="Dimensione finale" Binding="{Binding ResultSizeText}" Width="*"/>
             </DataGrid.Columns>
         </DataGrid>
@@ -77,9 +78,9 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <Label Content="Codec:" Grid.Column="0" VerticalAlignment="Center"/>
-            <ComboBox x:Name="CodecCombo" Grid.Column="1" Width="270" Margin="4,0,20,0" ItemTemplate="{StaticResource OptionItemTemplate}"/>
+            <ComboBox x:Name="CodecCombo" Grid.Column="1" Width="270" Margin="4,0,20,0" ItemTemplate="{StaticResource OptionItemTemplate}" SelectionChanged="CodecOrLevel_SelectionChanged"/>
             <Label Content="Livello compressione:" Grid.Column="2" VerticalAlignment="Center"/>
-            <ComboBox x:Name="LevelCombo" Grid.Column="3" Width="300" Margin="4,0" ItemTemplate="{StaticResource OptionItemTemplate}"/>
+            <ComboBox x:Name="LevelCombo" Grid.Column="3" Width="300" Margin="4,0" ItemTemplate="{StaticResource OptionItemTemplate}" SelectionChanged="CodecOrLevel_SelectionChanged"/>
         </Grid>
 
         <StackPanel Grid.Row="4" Margin="0,0,0,8">
@@ -93,6 +94,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <ProgressBar x:Name="OverallProgress" Grid.Row="0" Height="20" Minimum="0"/>
             <Grid Grid.Row="1" Margin="0,5">
@@ -103,7 +105,9 @@
                 <TextBlock x:Name="StatusLabel" Grid.Column="0" Text="Pronto."/>
                 <TextBlock x:Name="EtaLabel" Grid.Column="1" Text="" Foreground="{DynamicResource SubForegroundBrush}"/>
             </Grid>
-            <StackPanel Grid.Row="2" Orientation="Horizontal">
+            <TextBlock x:Name="EstimateSummaryLabel" Grid.Row="2" Text="" Margin="0,0,0,5" Foreground="{DynamicResource SubForegroundBrush}"/>
+            <StackPanel Grid.Row="3" Orientation="Horizontal">
+                <Button x:Name="EstimateButton" Content="Stima compressione" Click="Estimate_Click" Padding="12,7" Margin="0,0,6,0"/>
                 <Button x:Name="StartButton" Content="Avvia compressione" Click="Start_Click" Padding="12,7" Margin="0,0,6,0" Style="{StaticResource AccentButtonStyle}"/>
                 <Button x:Name="CancelButton" Content="Annulla" Click="Cancel_Click" Padding="12,7" IsEnabled="False"/>
             </StackPanel>
