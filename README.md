@@ -4,7 +4,17 @@ Strumenti per comprimere video in batch con l'encoder GPU NVIDIA (NVENC) tramite
 
 ## VideoCompressorApp/ (consigliato)
 
-App desktop **C# / WPF (.NET 8)** con interfaccia grafica: selezione multipla di file o cartelle, scelta del livello di compressione e del codec (H.264/H.265), cartella di destinazione, avanzamento per file e complessivo.
+App desktop **C# / WPF (.NET 8)** con interfaccia grafica:
+
+- Selezione multipla di file o cartelle (ricorsiva)
+- Scelta del codec (H.264/H.265) e del livello di compressione
+- Cartella di destinazione, con opzione mantieni struttura cartelle
+- Avanzamento per singolo file (con barra di progresso) e complessivo, con tempo rimanente stimato
+- Temi Chiaro/Scuro con 4 colori accento (Blu, Verde, Viola, Arancione), salvati automaticamente
+
+| Tema chiaro | Tema scuro |
+|---|---|
+| ![Tema chiaro](docs/screenshot-light.png) | ![Tema scuro](docs/screenshot-dark.png) |
 
 Build/pubblicazione come `.exe` singolo self-contained (richiede [.NET 8 SDK](https://dotnet.microsoft.com/download)):
 
