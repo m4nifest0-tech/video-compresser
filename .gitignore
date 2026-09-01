@@ -1,7 +1,5 @@
 VideoCompressorApp/bin/
 VideoCompressorApp/obj/
-output.txt
-img/output.txt
 compressed/
 .DS_Store
 *.zip
