@@ -50,7 +50,8 @@ public partial class MainWindow : Window
     private readonly ObservableCollection<VideoItem> _items = new();
     private readonly FfmpegService _ffmpeg = new();
     private CancellationTokenSource? _cts;
-    private Stopwatch? _batchStopwatch;
+    private Stopwatch? _currentItemStopwatch;
+    private readonly List<double> _completedItemSeconds = new();
     private bool _themeUiReady;
 
     public MainWindow()
@@ -91,27 +92,34 @@ public partial class MainWindow : Window
         return $"{Math.Max(0, ts.Seconds)}s rimanenti";
     }
 
-    private void UpdateEta(int doneCount, double currentItemPercent)
+    /// <summary>
+    /// Stima il tempo rimanente usando il tempo reale gia' impiegato sul file corrente
+    /// (proiettato sulla sua percentuale) piu' la durata media dei file gia' completati
+    /// per quelli ancora da iniziare. Piu' precisa della semplice media sull'intero batch,
+    /// che viene distorta dall'overhead iniziale di ffprobe/ffmpeg per ogni file.
+    /// </summary>
+    private void UpdateEta(double currentItemPercent, int itemsRemainingAfterCurrent)
     {
-        if (_batchStopwatch == null || _items.Count == 0)
+        double avgPerItem = _completedItemSeconds.Count > 0 ? _completedItemSeconds.Average() : 0;
+
+        double? remainingCurrentSeconds = null;
+        if (_currentItemStopwatch != null)
         {
-            EtaLabel.Text = "";
-            return;
+            double currentElapsed = _currentItemStopwatch.Elapsed.TotalSeconds;
+            if (currentItemPercent >= 1)
+                remainingCurrentSeconds = Math.Max(0, currentElapsed / (currentItemPercent / 100.0) - currentElapsed);
+            else if (avgPerItem > 0)
+                remainingCurrentSeconds = avgPerItem;
         }
 
-        double completedUnits = doneCount + currentItemPercent / 100.0;
-        if (completedUnits < 0.02)
+        if (remainingCurrentSeconds == null && avgPerItem <= 0)
         {
             EtaLabel.Text = "Stima tempo rimanente: calcolo...";
             return;
         }
 
-        var elapsed = _batchStopwatch.Elapsed;
-        var estimatedTotalTicks = (long)(elapsed.Ticks / completedUnits * _items.Count);
-        var remaining = TimeSpan.FromTicks(estimatedTotalTicks) - elapsed;
-        if (remaining < TimeSpan.Zero) remaining = TimeSpan.Zero;
-
-        EtaLabel.Text = FormatTimeSpan(remaining);
+        double totalRemaining = (remainingCurrentSeconds ?? 0) + avgPerItem * itemsRemainingAfterCurrent;
+        EtaLabel.Text = FormatTimeSpan(TimeSpan.FromSeconds(totalRemaining));
     }
 
     private void AddFiles_Click(object sender, RoutedEventArgs e)
@@ -228,7 +236,7 @@ public partial class MainWindow : Window
         OverallProgress.Minimum = 0;
         OverallProgress.Maximum = _items.Count;
         OverallProgress.Value = 0;
-        _batchStopwatch = Stopwatch.StartNew();
+        _completedItemSeconds.Clear();
         EtaLabel.Text = "Stima tempo rimanente: calcolo...";
 
         int done = 0;
@@ -250,7 +258,7 @@ public partial class MainWindow : Window
                     item.ProgressPercent = 100;
                     done++;
                     OverallProgress.Value = done;
-                    UpdateEta(done, 0);
+                    UpdateEta(0, _items.Count - done);
                     continue;
                 }
                 dest = UniqueDestPath(dest);
@@ -261,6 +269,8 @@ public partial class MainWindow : Window
             item.Status = "In corso";
             item.ProgressPercent = 0;
             StatusLabel.Text = $"[{done + 1}/{_items.Count}] {item.FileName}";
+            _currentItemStopwatch = Stopwatch.StartNew();
+            int itemsAfterThis = _items.Count - done - 1;
 
             var duration = await _ffmpeg.GetDurationSecondsAsync(item.SourcePath, _cts.Token);
 
@@ -271,7 +281,7 @@ public partial class MainWindow : Window
                     pct => Dispatcher.Invoke(() =>
                     {
                         item.ProgressPercent = pct;
-                        UpdateEta(done, pct);
+                        UpdateEta(pct, itemsAfterThis);
                     }),
                     _cts.Token);
             }
@@ -279,6 +289,9 @@ public partial class MainWindow : Window
             {
                 exitCode = -1;
             }
+
+            _completedItemSeconds.Add(_currentItemStopwatch.Elapsed.TotalSeconds);
+            _currentItemStopwatch = null;
 
             if (_cts.Token.IsCancellationRequested)
             {
@@ -304,12 +317,12 @@ public partial class MainWindow : Window
 
             done++;
             OverallProgress.Value = done;
-            UpdateEta(done, 0);
+            UpdateEta(0, _items.Count - done);
         }
 
         StatusLabel.Text = _cts.Token.IsCancellationRequested ? "Annullato." : "Completato.";
         EtaLabel.Text = "";
-        _batchStopwatch = null;
+        _currentItemStopwatch = null;
         StartButton.IsEnabled = true;
         CancelButton.IsEnabled = false;
         _cts = null;
