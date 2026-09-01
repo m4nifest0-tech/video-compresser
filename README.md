@@ -1,6 +1,6 @@
 # Video Compresser
 
-Strumenti per comprimere video in batch con l'encoder GPU NVIDIA (NVENC) tramite ffmpeg, pensati per un PC Windows con RTX 4060.
+Strumenti per comprimere video in batch con l'encoder GPU NVIDIA (NVENC) tramite ffmpeg, pensati per un PC Windows con scheda video RTX.
 
 ## VideoCompressorApp/ (consigliato)
 
