@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 using Microsoft.Win32;
 using VideoCompressor.Models;
 using VideoCompressor.Services;
@@ -160,6 +162,100 @@ public partial class MainWindow : Window
             foreach (var path in found)
                 _items.Add(new VideoItem(path, folder));
         }
+    }
+
+    private void Window_DragEnter(object sender, DragEventArgs e)
+    {
+        e.Effects = _cts == null && e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void Window_Drop(object sender, DragEventArgs e)
+    {
+        if (_cts != null || !e.Data.GetDataPresent(DataFormats.FileDrop)) return;
+        var paths = (string[])e.Data.GetData(DataFormats.FileDrop);
+        AddDroppedPaths(paths);
+    }
+
+    private void AddDroppedPaths(IEnumerable<string> paths)
+    {
+        int added = 0;
+        foreach (var path in paths)
+        {
+            if (Directory.Exists(path))
+            {
+                var found = Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)
+                    .Where(f => VideoExtensions.Contains(Path.GetExtension(f).ToLowerInvariant()))
+                    .OrderBy(f => f);
+                foreach (var f in found)
+                {
+                    _items.Add(new VideoItem(f, path));
+                    added++;
+                }
+            }
+            else if (File.Exists(path) && VideoExtensions.Contains(Path.GetExtension(path).ToLowerInvariant()))
+            {
+                _items.Add(new VideoItem(path, null));
+                added++;
+            }
+        }
+
+        if (added == 0)
+        {
+            MessageBox.Show("Nessun file video trovato tra gli elementi trascinati.", "Nessun video trovato",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+
+    private static void OpenWithDefaultApp(string path)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Impossibile aprire il file: {ex.Message}", "Errore apertura file",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void OpenSource_Click(object sender, RoutedEventArgs e)
+    {
+        if (((FrameworkElement)sender).DataContext is VideoItem item)
+            OpenWithDefaultApp(item.SourcePath);
+    }
+
+    private void OpenResult_Click(object sender, RoutedEventArgs e)
+    {
+        if (((FrameworkElement)sender).DataContext is VideoItem { DestPath: not null } item)
+            OpenWithDefaultApp(item.DestPath);
+    }
+
+    private void ShowLog_Click(object sender, RoutedEventArgs e)
+    {
+        if (((FrameworkElement)sender).DataContext is not VideoItem item) return;
+
+        var box = new TextBox
+        {
+            Text = item.ErrorDetail,
+            IsReadOnly = true,
+            TextWrapping = TextWrapping.Wrap,
+            AcceptsReturn = true,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            FontFamily = new FontFamily("Consolas"),
+            Margin = new Thickness(10),
+        };
+
+        new Window
+        {
+            Title = $"Log - {item.FileName}",
+            Width = 640,
+            Height = 420,
+            Owner = this,
+            Content = box,
+        }.ShowDialog();
     }
 
     private void RemoveSelected_Click(object sender, RoutedEventArgs e)
@@ -340,6 +436,8 @@ public partial class MainWindow : Window
                 {
                     item.Status = "Saltato";
                     item.ProgressPercent = 100;
+                    item.DestPath = dest;
+                    item.ResultSize = new FileInfo(dest).Length;
                     done++;
                     OverallProgress.Value = done;
                     UpdateEta(0, itemsSnapshot.Count - done);

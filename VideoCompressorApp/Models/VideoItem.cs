@@ -34,17 +34,21 @@ public class VideoItem : INotifyPropertyChanged
     public long? ResultSize
     {
         get => _resultSize;
-        set { _resultSize = value; OnPropertyChanged(); OnPropertyChanged(nameof(ResultSizeText)); }
+        set { _resultSize = value; OnPropertyChanged(); OnPropertyChanged(nameof(ResultSizeText)); OnPropertyChanged(nameof(HasResult)); }
     }
 
     public string ResultSizeText => ResultSize.HasValue ? FormatSize(ResultSize.Value) : "-";
+
+    public bool HasResult => ResultSize.HasValue && DestPath != null;
 
     private string? _errorDetail;
     public string? ErrorDetail
     {
         get => _errorDetail;
-        set { _errorDetail = value; OnPropertyChanged(); }
+        set { _errorDetail = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasErrorLog)); }
     }
+
+    public bool HasErrorLog => !string.IsNullOrWhiteSpace(ErrorDetail);
 
     private long? _estimatedSize;
     public long? EstimatedSize
