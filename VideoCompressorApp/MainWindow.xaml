@@ -24,10 +24,10 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" Grid.Column="0">
-                <Button Content="Aggiungi file..." Click="AddFiles_Click" Padding="10,5" Margin="0,0,6,0"/>
-                <Button Content="Aggiungi cartella..." Click="AddFolder_Click" Padding="10,5" Margin="0,0,6,0"/>
-                <Button Content="Rimuovi selezionati" Click="RemoveSelected_Click" Padding="10,5" Margin="0,0,6,0"/>
-                <Button Content="Svuota lista" Click="ClearList_Click" Padding="10,5"/>
+                <Button x:Name="AddFilesButton" Content="Aggiungi file..." Click="AddFiles_Click" Padding="10,5" Margin="0,0,6,0"/>
+                <Button x:Name="AddFolderButton" Content="Aggiungi cartella..." Click="AddFolder_Click" Padding="10,5" Margin="0,0,6,0"/>
+                <Button x:Name="RemoveSelectedButton" Content="Rimuovi selezionati" Click="RemoveSelected_Click" Padding="10,5" Margin="0,0,6,0"/>
+                <Button x:Name="ClearListButton" Content="Svuota lista" Click="ClearList_Click" Padding="10,5"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Grid.Column="1" VerticalAlignment="Center">
                 <TextBlock Text="Tema:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{DynamicResource SubForegroundBrush}"/>
@@ -42,7 +42,13 @@
             <DataGrid.Columns>
                 <DataGridTextColumn Header="File" Binding="{Binding FileName}" Width="260"/>
                 <DataGridTextColumn Header="Dimensione originale" Binding="{Binding OriginalSizeText}" Width="130"/>
-                <DataGridTextColumn Header="Stato" Binding="{Binding Status}" Width="100"/>
+                <DataGridTextColumn Header="Stato" Binding="{Binding Status}" Width="100">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="ToolTip" Value="{Binding ErrorDetail}"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
                 <DataGridTemplateColumn Header="Avanzamento" Width="150">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
@@ -66,7 +72,7 @@
             </Grid.ColumnDefinitions>
             <Label Content="Cartella destinazione:" Grid.Column="0" VerticalAlignment="Center"/>
             <TextBox x:Name="DestTextBox" Grid.Column="1" VerticalAlignment="Center" Margin="6,0" Padding="4"/>
-            <Button Content="Sfoglia..." Grid.Column="2" Click="BrowseDest_Click" Padding="10,5"/>
+            <Button x:Name="BrowseDestButton" Content="Sfoglia..." Grid.Column="2" Click="BrowseDest_Click" Padding="10,5"/>
         </Grid>
 
         <Grid Grid.Row="3" Margin="0,0,0,8">

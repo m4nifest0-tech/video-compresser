@@ -223,14 +223,13 @@ public partial class MainWindow : Window
 
         var codec = (CodecOption)CodecCombo.SelectedItem;
         var level = (LevelOption)LevelCombo.SelectedItem;
+        var itemsSnapshot = _items.ToList();
 
         _cts = new CancellationTokenSource();
-        EstimateButton.IsEnabled = false;
-        StartButton.IsEnabled = false;
-        CancelButton.IsEnabled = true;
+        SetBusy(true);
         EstimateSummaryLabel.Text = "";
         OverallProgress.Minimum = 0;
-        OverallProgress.Maximum = _items.Count;
+        OverallProgress.Maximum = itemsSnapshot.Count;
         OverallProgress.Value = 0;
 
         long totalOriginal = 0;
@@ -238,11 +237,11 @@ public partial class MainWindow : Window
         int estimatedCount = 0;
         int done = 0;
 
-        foreach (var item in _items)
+        foreach (var item in itemsSnapshot)
         {
             if (_cts.Token.IsCancellationRequested) break;
 
-            StatusLabel.Text = $"Stima [{done + 1}/{_items.Count}] {item.FileName}";
+            StatusLabel.Text = $"Stima [{done + 1}/{itemsSnapshot.Count}] {item.FileName}";
             var duration = await _ffmpeg.GetDurationSecondsAsync(item.SourcePath, _cts.Token);
             var estimate = duration.HasValue
                 ? await _ffmpeg.EstimateOutputSizeAsync(item.SourcePath, codec.Value, level.Cq, duration.Value, _cts.Token)
@@ -269,7 +268,7 @@ public partial class MainWindow : Window
             double change = 100.0 * (1 - (double)totalEstimated / totalOriginal);
             string sign = change >= 0 ? "-" : "+";
             EstimateSummaryLabel.Text =
-                $"Stima totale: {VideoItem.FormatSize(totalEstimated)} ({sign}{Math.Abs(change):0}% rispetto a {VideoItem.FormatSize(totalOriginal)}) su {estimatedCount}/{_items.Count} file";
+                $"Stima totale: {VideoItem.FormatSize(totalEstimated)} ({sign}{Math.Abs(change):0}% rispetto a {VideoItem.FormatSize(totalOriginal)}) su {estimatedCount}/{itemsSnapshot.Count} file";
             StatusLabel.Text = "Stima completata.";
         }
         else
@@ -278,9 +277,7 @@ public partial class MainWindow : Window
         }
 
         OverallProgress.Value = 0;
-        EstimateButton.IsEnabled = true;
-        StartButton.IsEnabled = true;
-        CancelButton.IsEnabled = false;
+        SetBusy(false);
         _cts = null;
     }
 
@@ -315,18 +312,18 @@ public partial class MainWindow : Window
         bool preserveStructure = PreserveStructureCheck.IsChecked == true;
         bool skipExisting = SkipExistingCheck.IsChecked == true;
         bool deleteSource = DeleteSourceCheck.IsChecked == true;
+        var itemsSnapshot = _items.ToList();
 
         _cts = new CancellationTokenSource();
-        StartButton.IsEnabled = false;
-        CancelButton.IsEnabled = true;
+        SetBusy(true);
         OverallProgress.Minimum = 0;
-        OverallProgress.Maximum = _items.Count;
+        OverallProgress.Maximum = itemsSnapshot.Count;
         OverallProgress.Value = 0;
         _completedItemSeconds.Clear();
         EtaLabel.Text = "Stima tempo rimanente: calcolo...";
 
         int done = 0;
-        foreach (var item in _items)
+        foreach (var item in itemsSnapshot)
         {
             if (_cts.Token.IsCancellationRequested)
             {
@@ -334,6 +331,7 @@ public partial class MainWindow : Window
                 continue;
             }
 
+            item.ErrorDetail = null;
             var dest = ComputeDest(item, destDir, preserveStructure);
 
             if (File.Exists(dest))
@@ -344,73 +342,83 @@ public partial class MainWindow : Window
                     item.ProgressPercent = 100;
                     done++;
                     OverallProgress.Value = done;
-                    UpdateEta(0, _items.Count - done);
+                    UpdateEta(0, itemsSnapshot.Count - done);
                     continue;
                 }
                 dest = UniqueDestPath(dest);
             }
 
-            Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
             item.DestPath = dest;
             item.Status = "In corso";
             item.ProgressPercent = 0;
-            StatusLabel.Text = $"[{done + 1}/{_items.Count}] {item.FileName}";
+            StatusLabel.Text = $"[{done + 1}/{itemsSnapshot.Count}] {item.FileName}";
             _currentItemStopwatch = Stopwatch.StartNew();
-            int itemsAfterThis = _items.Count - done - 1;
+            int itemsAfterThis = itemsSnapshot.Count - done - 1;
 
-            var duration = await _ffmpeg.GetDurationSecondsAsync(item.SourcePath, _cts.Token);
-
-            int exitCode;
             try
             {
-                exitCode = await _ffmpeg.CompressAsync(item.SourcePath, dest, codec.Value, level.Cq, duration,
-                    pct => Dispatcher.Invoke(() =>
+                Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+                var duration = await _ffmpeg.GetDurationSecondsAsync(item.SourcePath, _cts.Token);
+
+                CompressResult result;
+                try
+                {
+                    result = await _ffmpeg.CompressAsync(item.SourcePath, dest, codec.Value, level.Cq, duration,
+                        pct => Dispatcher.Invoke(() =>
+                        {
+                            item.ProgressPercent = pct;
+                            UpdateEta(pct, itemsAfterThis);
+                        }),
+                        _cts.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    result = new CompressResult(-1, "");
+                }
+
+                if (_cts.Token.IsCancellationRequested)
+                {
+                    item.Status = "Annullato";
+                    try { if (File.Exists(dest)) File.Delete(dest); } catch { /* file forse in uso */ }
+                }
+                else if (result.ExitCode != 0)
+                {
+                    item.Status = "Errore";
+                    item.ErrorDetail = string.IsNullOrWhiteSpace(result.StdErr) ? "ffmpeg ha restituito un errore senza dettagli." : result.StdErr;
+                }
+                else
+                {
+                    item.Status = "Completato";
+                    item.ProgressPercent = 100;
+                    item.ResultSize = File.Exists(dest) ? new FileInfo(dest).Length : null;
+
+                    if (deleteSource)
                     {
-                        item.ProgressPercent = pct;
-                        UpdateEta(pct, itemsAfterThis);
-                    }),
-                    _cts.Token);
+                        try { File.Delete(item.SourcePath); }
+                        catch (IOException ex) { StatusLabel.Text = $"Impossibile eliminare originale: {ex.Message}"; }
+                    }
+                }
             }
-            catch (OperationCanceledException)
+            catch (Exception ex)
             {
-                exitCode = -1;
+                // Un singolo file guasto (permessi, percorso non valido, disco pieno...) non deve
+                // interrompere l'intero batch: lo si segna come errore e si prosegue con il successivo.
+                item.Status = "Errore";
+                item.ErrorDetail = ex.Message;
             }
 
             _completedItemSeconds.Add(_currentItemStopwatch.Elapsed.TotalSeconds);
             _currentItemStopwatch = null;
 
-            if (_cts.Token.IsCancellationRequested)
-            {
-                item.Status = "Annullato";
-                try { if (File.Exists(dest)) File.Delete(dest); } catch { /* file forse in uso */ }
-            }
-            else if (exitCode != 0)
-            {
-                item.Status = "Errore";
-            }
-            else
-            {
-                item.Status = "Completato";
-                item.ProgressPercent = 100;
-                item.ResultSize = File.Exists(dest) ? new FileInfo(dest).Length : null;
-
-                if (deleteSource)
-                {
-                    try { File.Delete(item.SourcePath); }
-                    catch (IOException ex) { StatusLabel.Text = $"Impossibile eliminare originale: {ex.Message}"; }
-                }
-            }
-
             done++;
             OverallProgress.Value = done;
-            UpdateEta(0, _items.Count - done);
+            UpdateEta(0, itemsSnapshot.Count - done);
         }
 
         StatusLabel.Text = _cts.Token.IsCancellationRequested ? "Annullato." : "Completato.";
         EtaLabel.Text = "";
         _currentItemStopwatch = null;
-        StartButton.IsEnabled = true;
-        CancelButton.IsEnabled = false;
+        SetBusy(false);
         _cts = null;
     }
 
@@ -418,5 +426,29 @@ public partial class MainWindow : Window
     {
         _cts?.Cancel();
         StatusLabel.Text = "Annullamento in corso...";
+    }
+
+    /// <summary>
+    /// Blocca i controlli che modificherebbero la lista file (o le impostazioni) mentre
+    /// Estimate_Click/Start_Click la stanno enumerando: senza questo, rimuovere o aggiungere
+    /// un elemento a meta' elaborazione lancia un'eccezione non gestita e chiude l'app.
+    /// </summary>
+    private void SetBusy(bool busy)
+    {
+        AddFilesButton.IsEnabled = !busy;
+        AddFolderButton.IsEnabled = !busy;
+        RemoveSelectedButton.IsEnabled = !busy;
+        ClearListButton.IsEnabled = !busy;
+        FilesGrid.IsEnabled = !busy;
+        DestTextBox.IsEnabled = !busy;
+        BrowseDestButton.IsEnabled = !busy;
+        CodecCombo.IsEnabled = !busy;
+        LevelCombo.IsEnabled = !busy;
+        PreserveStructureCheck.IsEnabled = !busy;
+        SkipExistingCheck.IsEnabled = !busy;
+        DeleteSourceCheck.IsEnabled = !busy;
+        EstimateButton.IsEnabled = !busy;
+        StartButton.IsEnabled = !busy;
+        CancelButton.IsEnabled = busy;
     }
 }

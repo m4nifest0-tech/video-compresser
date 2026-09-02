@@ -138,7 +138,7 @@ public class FfmpegService
         }
     }
 
-    public async Task<int> CompressAsync(string sourcePath, string destPath, string codec, int cq,
+    public async Task<CompressResult> CompressAsync(string sourcePath, string destPath, string codec, int cq,
         double? durationSeconds, Action<double> onProgress, CancellationToken ct)
     {
         var psi = new ProcessStartInfo
@@ -209,7 +209,10 @@ public class FfmpegService
         }
 
         await proc.WaitForExitAsync(CancellationToken.None);
-        try { await stderrDrainTask; } catch { /* ignora */ }
-        return proc.ExitCode;
+        string stderrText = "";
+        try { stderrText = await stderrDrainTask; } catch { /* ignora */ }
+        return new CompressResult(proc.ExitCode, stderrText.Trim());
     }
 }
+
+public record CompressResult(int ExitCode, string StdErr);

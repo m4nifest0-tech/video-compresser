@@ -39,6 +39,13 @@ public class VideoItem : INotifyPropertyChanged
 
     public string ResultSizeText => ResultSize.HasValue ? FormatSize(ResultSize.Value) : "-";
 
+    private string? _errorDetail;
+    public string? ErrorDetail
+    {
+        get => _errorDetail;
+        set { _errorDetail = value; OnPropertyChanged(); }
+    }
+
     private long? _estimatedSize;
     public long? EstimatedSize
     {
