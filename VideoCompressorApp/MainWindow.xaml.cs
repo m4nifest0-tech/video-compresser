@@ -166,12 +166,20 @@ public partial class MainWindow : Window
 
     private void Window_DragEnter(object sender, DragEventArgs e)
     {
-        e.Effects = _cts == null && e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+        bool canDrop = _cts == null && e.Data.GetDataPresent(DataFormats.FileDrop);
+        e.Effects = canDrop ? DragDropEffects.Copy : DragDropEffects.None;
+        DropOverlay.Visibility = canDrop ? Visibility.Visible : Visibility.Collapsed;
         e.Handled = true;
+    }
+
+    private void Window_DragLeave(object sender, DragEventArgs e)
+    {
+        DropOverlay.Visibility = Visibility.Collapsed;
     }
 
     private void Window_Drop(object sender, DragEventArgs e)
     {
+        DropOverlay.Visibility = Visibility.Collapsed;
         if (_cts != null || !e.Data.GetDataPresent(DataFormats.FileDrop)) return;
         var paths = (string[])e.Data.GetData(DataFormats.FileDrop);
         AddDroppedPaths(paths);

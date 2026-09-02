@@ -1,9 +1,10 @@
 <Window x:Class="VideoCompressor.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Compressore Video (GPU NVENC)" Height="680" Width="920" MinHeight="580" MinWidth="800"
+        Title="Compressore Video (GPU NVENC)" Height="700" Width="980" MinHeight="600" MinWidth="860"
         Icon="app.ico" Background="{DynamicResource WindowBackgroundBrush}"
-        AllowDrop="True" DragEnter="Window_DragEnter" DragOver="Window_DragEnter" Drop="Window_Drop">
+        AllowDrop="True" DragEnter="Window_DragEnter" DragOver="Window_DragEnter"
+        DragLeave="Window_DragLeave" Drop="Window_Drop">
     <Window.Resources>
         <DataTemplate x:Key="OptionItemTemplate">
             <TextBlock Text="{Binding Label}"/>
@@ -11,104 +12,114 @@
     </Window.Resources>
     <Grid Margin="10">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0" Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <StackPanel Orientation="Horizontal" Grid.Column="0">
-                <Button x:Name="AddFilesButton" Content="Aggiungi file..." Click="AddFiles_Click" Padding="10,5" Margin="0,0,6,0"/>
-                <Button x:Name="AddFolderButton" Content="Aggiungi cartella..." Click="AddFolder_Click" Padding="10,5" Margin="0,0,6,0"/>
-                <Button x:Name="RemoveSelectedButton" Content="Rimuovi selezionati" Click="RemoveSelected_Click" Padding="10,5" Margin="0,0,6,0"/>
-                <Button x:Name="ClearListButton" Content="Svuota lista" Click="ClearList_Click" Padding="10,5"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Grid.Column="1" VerticalAlignment="Center">
-                <TextBlock Text="Tema:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{DynamicResource SubForegroundBrush}"/>
-                <ComboBox x:Name="ThemeModeCombo" Width="90" Margin="0,0,14,0" SelectionChanged="ThemeCombo_SelectionChanged" ItemTemplate="{StaticResource OptionItemTemplate}"/>
-                <TextBlock Text="Colore:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{DynamicResource SubForegroundBrush}"/>
-                <ComboBox x:Name="AccentColorCombo" Width="100" SelectionChanged="ThemeCombo_SelectionChanged" ItemTemplate="{StaticResource OptionItemTemplate}"/>
-            </StackPanel>
-        </Grid>
+        <TabControl Grid.Row="0">
+            <TabItem Header="File">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-        <DataGrid x:Name="FilesGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True"
-                  SelectionMode="Extended" CanUserAddRows="False" Margin="0,0,0,8" RowHeaderWidth="0"
-                  ToolTip="Puoi anche trascinare qui file o cartelle da comprimere">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="File" Binding="{Binding FileName}" Width="220"/>
-                <DataGridTextColumn Header="Dimensione originale" Binding="{Binding OriginalSizeText}" Width="120"/>
-                <DataGridTextColumn Header="Stato" Binding="{Binding Status}" Width="90">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="ToolTip" Value="{Binding ErrorDetail}"/>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTemplateColumn Header="Avanzamento" Width="130">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Grid Margin="2">
-                                <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPercent, Mode=OneWay}" Height="16"/>
-                                <TextBlock Text="{Binding ProgressText}" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Grid>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-                <DataGridTextColumn Header="Stima output" Binding="{Binding EstimatedSizeText}" Width="120"/>
-                <DataGridTextColumn Header="Dimensione finale" Binding="{Binding ResultSizeText}" Width="120"/>
-                <DataGridTemplateColumn Header="Azioni" Width="*">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal">
-                                <Button Content="Originale" Padding="6,2" Margin="0,0,4,0" Click="OpenSource_Click"/>
-                                <Button Content="Risultato" Padding="6,2" Margin="0,0,4,0" Click="OpenResult_Click" IsEnabled="{Binding HasResult}"/>
-                                <Button Content="Log" Padding="6,2" Click="ShowLog_Click" IsEnabled="{Binding HasErrorLog}"/>
-                            </StackPanel>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-            </DataGrid.Columns>
-        </DataGrid>
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button x:Name="AddFilesButton" Content="Aggiungi file..." Click="AddFiles_Click" Padding="10,5" Margin="0,0,6,0"/>
+                        <Button x:Name="AddFolderButton" Content="Aggiungi cartella..." Click="AddFolder_Click" Padding="10,5" Margin="0,0,6,0"/>
+                        <Button x:Name="RemoveSelectedButton" Content="Rimuovi selezionati" Click="RemoveSelected_Click" Padding="10,5" Margin="0,0,6,0"/>
+                        <Button x:Name="ClearListButton" Content="Svuota lista" Click="ClearList_Click" Padding="10,5"/>
+                    </StackPanel>
 
-        <Grid Grid.Row="2" Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <Label Content="Cartella destinazione:" Grid.Column="0" VerticalAlignment="Center"/>
-            <TextBox x:Name="DestTextBox" Grid.Column="1" VerticalAlignment="Center" Margin="6,0" Padding="4"/>
-            <Button x:Name="BrowseDestButton" Content="Sfoglia..." Grid.Column="2" Click="BrowseDest_Click" Padding="10,5"/>
-        </Grid>
+                    <TextBlock Grid.Row="1" Text="Suggerimento: puoi anche trascinare qui file o cartelle da comprimere."
+                               FontSize="11" Foreground="{DynamicResource SubForegroundBrush}" Margin="0,0,0,6"/>
 
-        <Grid Grid.Row="3" Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <Label Content="Codec:" Grid.Column="0" VerticalAlignment="Center"/>
-            <ComboBox x:Name="CodecCombo" Grid.Column="1" Width="270" Margin="4,0,20,0" ItemTemplate="{StaticResource OptionItemTemplate}" SelectionChanged="CodecOrLevel_SelectionChanged"/>
-            <Label Content="Livello compressione:" Grid.Column="2" VerticalAlignment="Center"/>
-            <ComboBox x:Name="LevelCombo" Grid.Column="3" Width="300" Margin="4,0" ItemTemplate="{StaticResource OptionItemTemplate}" SelectionChanged="CodecOrLevel_SelectionChanged"/>
-        </Grid>
+                    <DataGrid x:Name="FilesGrid" Grid.Row="2" AutoGenerateColumns="False" IsReadOnly="True"
+                              SelectionMode="Extended" CanUserAddRows="False" RowHeaderWidth="0"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto" Cursor="Arrow">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="File" Binding="{Binding FileName}" Width="170"/>
+                            <DataGridTextColumn Header="Dimensione originale" Binding="{Binding OriginalSizeText}" Width="120"/>
+                            <DataGridTextColumn Header="Stato" Binding="{Binding Status}" Width="80">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="ToolTip" Value="{Binding ErrorDetail}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTemplateColumn Header="Avanzamento" Width="110">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="2">
+                                            <ProgressBar Minimum="0" Maximum="100" Value="{Binding ProgressPercent, Mode=OneWay}" Height="16"/>
+                                            <TextBlock Text="{Binding ProgressText}" FontSize="10" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Stima output" Binding="{Binding EstimatedSizeText}" Width="110"/>
+                            <DataGridTextColumn Header="Dimensione finale" Binding="{Binding ResultSizeText}" Width="110"/>
+                            <DataGridTemplateColumn Header="Azioni" Width="*" MinWidth="210">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button Content="Originale" Padding="5,2" Margin="0,0,3,0" Click="OpenSource_Click"/>
+                                            <Button Content="Risultato" Padding="5,2" Margin="0,0,3,0" Click="OpenResult_Click" IsEnabled="{Binding HasResult}"/>
+                                            <Button Content="Log" Padding="5,2" Click="ShowLog_Click" IsEnabled="{Binding HasErrorLog}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
 
-        <StackPanel Grid.Row="4" Margin="0,0,0,8">
-            <CheckBox x:Name="PreserveStructureCheck" Content="Mantieni struttura cartelle (per elementi aggiunti da cartella)" IsChecked="True" Margin="0,3"/>
-            <CheckBox x:Name="SkipExistingCheck" Content="Salta se il file di destinazione esiste gia" IsChecked="True" Margin="0,3"/>
-            <CheckBox x:Name="DeleteSourceCheck" Content="Elimina l'originale dopo compressione riuscita (irreversibile)" Margin="0,3"/>
-        </StackPanel>
+            <TabItem Header="Impostazioni">
+                <StackPanel>
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Cartella destinazione:" Grid.Column="0" VerticalAlignment="Center"/>
+                        <TextBox x:Name="DestTextBox" Grid.Column="1" VerticalAlignment="Center" Margin="6,0" Padding="4"/>
+                        <Button x:Name="BrowseDestButton" Content="Sfoglia..." Grid.Column="2" Click="BrowseDest_Click" Padding="10,5"/>
+                    </Grid>
 
-        <Grid Grid.Row="5">
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Codec:" Grid.Column="0" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="CodecCombo" Grid.Column="1" Width="270" Margin="4,0,20,0" ItemTemplate="{StaticResource OptionItemTemplate}" SelectionChanged="CodecOrLevel_SelectionChanged"/>
+                        <Label Content="Livello compressione:" Grid.Column="2" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="LevelCombo" Grid.Column="3" Width="300" Margin="4,0" ItemTemplate="{StaticResource OptionItemTemplate}" SelectionChanged="CodecOrLevel_SelectionChanged"/>
+                    </Grid>
+
+                    <StackPanel Margin="0,0,0,14">
+                        <CheckBox x:Name="PreserveStructureCheck" Content="Mantieni struttura cartelle (per elementi aggiunti da cartella)" IsChecked="True" Margin="0,3"/>
+                        <CheckBox x:Name="SkipExistingCheck" Content="Salta se il file di destinazione esiste gia" IsChecked="True" Margin="0,3"/>
+                        <CheckBox x:Name="DeleteSourceCheck" Content="Elimina l'originale dopo compressione riuscita (irreversibile)" Margin="0,3"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="Tema:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{DynamicResource SubForegroundBrush}"/>
+                        <ComboBox x:Name="ThemeModeCombo" Width="90" Margin="0,0,14,0" SelectionChanged="ThemeCombo_SelectionChanged" ItemTemplate="{StaticResource OptionItemTemplate}"/>
+                        <TextBlock Text="Colore:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{DynamicResource SubForegroundBrush}"/>
+                        <ComboBox x:Name="AccentColorCombo" Width="100" SelectionChanged="ThemeCombo_SelectionChanged" ItemTemplate="{StaticResource OptionItemTemplate}"/>
+                    </StackPanel>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+
+        <Grid Grid.Row="1" Margin="0,10,0,0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -131,5 +142,16 @@
                 <Button x:Name="CancelButton" Content="Annulla" Click="Cancel_Click" Padding="12,7" IsEnabled="False"/>
             </StackPanel>
         </Grid>
+
+        <Border x:Name="DropOverlay" Grid.Row="0" Grid.RowSpan="2" Visibility="Collapsed" IsHitTestVisible="False"
+                Background="#CC000000" CornerRadius="8">
+            <Border BorderBrush="{DynamicResource AccentBrush}" BorderThickness="3" CornerRadius="10" Margin="24">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="&#8681;" FontSize="42" HorizontalAlignment="Center" Foreground="White"/>
+                    <TextBlock Text="Rilascia qui i file o le cartelle da comprimere" FontSize="16" FontWeight="Bold"
+                               Foreground="White" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+                </StackPanel>
+            </Border>
+        </Border>
     </Grid>
 </Window>
