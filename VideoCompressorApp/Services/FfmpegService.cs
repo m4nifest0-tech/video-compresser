@@ -29,7 +29,7 @@ public class FfmpegService
         return null;
     }
 
-    public async Task<double?> GetDurationSecondsAsync(string filePath, CancellationToken ct)
+    public async Task<DurationResult> GetDurationSecondsAsync(string filePath, CancellationToken ct)
     {
         try
         {
@@ -37,6 +37,7 @@ public class FfmpegService
             {
                 FileName = "ffprobe",
                 RedirectStandardOutput = true,
+                RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
@@ -49,18 +50,28 @@ public class FfmpegService
             psi.ArgumentList.Add(filePath);
 
             using var proc = Process.Start(psi);
-            if (proc == null) return null;
+            if (proc == null) return new DurationResult(null, "Impossibile avviare ffprobe.");
 
+            var stderrTask = proc.StandardError.ReadToEndAsync();
             string output = await proc.StandardOutput.ReadToEndAsync(ct);
             await proc.WaitForExitAsync(ct);
+            string stderr = "";
+            try { stderr = await stderrTask; } catch { /* ignora */ }
 
             if (double.TryParse(output.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out var seconds))
-                return seconds;
-            return null;
+                return new DurationResult(seconds, "");
+
+            return new DurationResult(null, string.IsNullOrWhiteSpace(stderr)
+                ? "ffprobe non ha restituito una durata valida (file non riconosciuto?)."
+                : stderr.Trim());
         }
-        catch
+        catch (OperationCanceledException)
         {
-            return null;
+            return new DurationResult(null, "");
+        }
+        catch (Exception ex)
+        {
+            return new DurationResult(null, ex.Message);
         }
     }
 
@@ -69,10 +80,10 @@ public class FfmpegService
     /// e ne misura il bitrate risultante, per stimare la dimensione finale dell'intero file
     /// senza dover attendere la compressione completa.
     /// </summary>
-    public async Task<long?> EstimateOutputSizeAsync(string sourcePath, string codec, int cq,
+    public async Task<EstimateResult> EstimateOutputSizeAsync(string sourcePath, string codec, int cq,
         double durationSeconds, CancellationToken ct)
     {
-        if (durationSeconds <= 0) return null;
+        if (durationSeconds <= 0) return new EstimateResult(null, "Durata del video non valida.");
 
         double sampleSeconds = Math.Min(5, durationSeconds);
         double start = Math.Max(0, durationSeconds * 0.3 - sampleSeconds / 2);
@@ -120,16 +131,28 @@ public class FfmpegService
             });
 
             await proc.WaitForExitAsync(CancellationToken.None);
-            try { await stderrTask; } catch { /* ignora */ }
+            string stderrText = "";
+            try { stderrText = await stderrTask; } catch { /* ignora */ }
 
-            if (ct.IsCancellationRequested || proc.ExitCode != 0 || !File.Exists(tempFile)) return null;
+            if (ct.IsCancellationRequested) return new EstimateResult(null, "");
+
+            if (proc.ExitCode != 0)
+            {
+                string msg = string.IsNullOrWhiteSpace(stderrText)
+                    ? $"ffmpeg ha restituito il codice di errore {proc.ExitCode} senza dettagli."
+                    : stderrText.Trim();
+                return new EstimateResult(null, msg);
+            }
+
+            if (!File.Exists(tempFile))
+                return new EstimateResult(null, "ffmpeg ha terminato senza errori ma non ha creato il file campione.");
 
             long sampleBytes = new FileInfo(tempFile).Length;
-            return (long)(sampleBytes / sampleSeconds * durationSeconds);
+            return new EstimateResult((long)(sampleBytes / sampleSeconds * durationSeconds), "");
         }
-        catch
+        catch (Exception ex)
         {
-            return null;
+            return new EstimateResult(null, ex.Message);
         }
         finally
         {
@@ -216,3 +239,5 @@ public class FfmpegService
 }
 
 public record CompressResult(int ExitCode, string StdErr);
+public record DurationResult(double? Seconds, string ErrorDetail);
+public record EstimateResult(long? Bytes, string ErrorDetail);

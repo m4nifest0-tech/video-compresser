@@ -346,16 +346,17 @@ public partial class MainWindow : Window
             if (_cts.Token.IsCancellationRequested) break;
 
             StatusLabel.Text = $"Stima [{done + 1}/{itemsSnapshot.Count}] {item.FileName}";
-            var duration = await _ffmpeg.GetDurationSecondsAsync(item.SourcePath, _cts.Token);
-            var estimate = duration.HasValue
-                ? await _ffmpeg.EstimateOutputSizeAsync(item.SourcePath, codec.Value, level.Cq, duration.Value, _cts.Token)
-                : null;
+            var durationResult = await _ffmpeg.GetDurationSecondsAsync(item.SourcePath, _cts.Token);
+            var estimateResult = durationResult.Seconds.HasValue
+                ? await _ffmpeg.EstimateOutputSizeAsync(item.SourcePath, codec.Value, level.Cq, durationResult.Seconds.Value, _cts.Token)
+                : new EstimateResult(null, durationResult.ErrorDetail);
 
-            item.EstimatedSize = estimate;
-            if (estimate.HasValue && item.OriginalSize > 0)
+            item.EstimatedSize = estimateResult.Bytes;
+            item.ErrorDetail = estimateResult.Bytes.HasValue ? null : estimateResult.ErrorDetail;
+            if (estimateResult.Bytes.HasValue && item.OriginalSize > 0)
             {
                 totalOriginal += item.OriginalSize;
-                totalEstimated += estimate.Value;
+                totalEstimated += estimateResult.Bytes.Value;
                 estimatedCount++;
             }
 
@@ -464,12 +465,12 @@ public partial class MainWindow : Window
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-                var duration = await _ffmpeg.GetDurationSecondsAsync(item.SourcePath, _cts.Token);
+                var durationResult = await _ffmpeg.GetDurationSecondsAsync(item.SourcePath, _cts.Token);
 
                 CompressResult result;
                 try
                 {
-                    result = await _ffmpeg.CompressAsync(item.SourcePath, dest, codec.Value, level.Cq, duration,
+                    result = await _ffmpeg.CompressAsync(item.SourcePath, dest, codec.Value, level.Cq, durationResult.Seconds,
                         pct => Dispatcher.Invoke(() =>
                         {
                             item.ProgressPercent = pct;
