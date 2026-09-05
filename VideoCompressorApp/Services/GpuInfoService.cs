@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace VideoCompressor.Services;
 
@@ -27,6 +28,7 @@ public static class GpuInfoService
         }
 
         var result = QueryNvidiaSmi();
+        FillMissingPowerDraw(result);
 
         lock (CacheLock)
         {
@@ -88,6 +90,77 @@ public static class GpuInfoService
             // l'interfaccia web mostrera' semplicemente "GPU non disponibile".
             return new List<GpuStat>();
         }
+    }
+
+    /// <summary>
+    /// Alcune GPU (anche professionali, non solo laptop) non riportano il consumo istantaneo tramite
+    /// il campo "power.draw" della query CSV pur avendo comunque un limite di potenza configurato.
+    /// Il consumo reale resta pero' disponibile in "nvidia-smi -q -d POWER", sotto "Power Samples",
+    /// come media delle ultime letture campionate dal driver: la si usa come ripiego solo quando serve,
+    /// per evitare di avviare un secondo processo nvidia-smi ad ogni interrogazione.
+    /// </summary>
+    private static void FillMissingPowerDraw(List<GpuStat> stats)
+    {
+        if (stats.Count == 0 || !stats.Any(s => s.PowerDrawW == null)) return;
+
+        var samples = QueryPowerSamplesAvg();
+        for (int i = 0; i < stats.Count && i < samples.Count; i++)
+        {
+            if (stats[i].PowerDrawW == null && samples[i] is { } avg)
+                stats[i] = stats[i] with { PowerDrawW = avg };
+        }
+    }
+
+    private static List<double?> QueryPowerSamplesAvg()
+    {
+        var result = new List<double?>();
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "nvidia-smi",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            psi.ArgumentList.Add("-q");
+            psi.ArgumentList.Add("-d");
+            psi.ArgumentList.Add("POWER");
+
+            using var proc = Process.Start(psi);
+            if (proc == null) return result;
+
+            string output = proc.StandardOutput.ReadToEnd();
+            proc.WaitForExit(3000);
+            if (!proc.HasExited)
+            {
+                try { proc.Kill(true); } catch { /* ignora */ }
+                return result;
+            }
+
+            // Ogni GPU e' delimitata da una riga "GPU <indirizzo PCI>", nello stesso ordine
+            // restituito dalla query CSV usata altrove in questa classe.
+            var blocks = Regex.Split(output, @"(?m)^GPU\s+\S+");
+            foreach (var block in blocks.Skip(1))
+            {
+                var direct = Regex.Match(block, @"Instantaneous Power Draw\s*:\s*([\d.]+)\s*W");
+                if (!direct.Success) direct = Regex.Match(block, @"Average Power Draw\s*:\s*([\d.]+)\s*W");
+                if (direct.Success)
+                {
+                    result.Add(ParseDouble(direct.Groups[1].Value));
+                    continue;
+                }
+
+                var sampled = Regex.Match(block, @"Power Samples[\s\S]*?Avg\s*:\s*([\d.]+)\s*W");
+                result.Add(sampled.Success ? ParseDouble(sampled.Groups[1].Value) : null);
+            }
+        }
+        catch
+        {
+            // fallback silenzioso: si continua a mostrare solo il limite gia' noto dalla query CSV
+        }
+        return result;
     }
 
     private static double? ParseDouble(string s) =>
