@@ -88,6 +88,7 @@ public static class UpdateService
         Directory.CreateDirectory(updateDir);
         var newExePath = Path.Combine(updateDir, "VideoCompressor.new.exe");
 
+        long downloadedSize;
         using (var http = CreateClient())
         using (var response = await http.GetAsync(info.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, ct))
         {
@@ -107,12 +108,22 @@ public static class UpdateService
                 readTotal += read;
                 if (total > 0) progress?.Report(100.0 * readTotal / total);
             }
+            downloadedSize = readTotal;
         }
 
         var pid = Environment.ProcessId;
         var scriptPath = Path.Combine(updateDir, "apply_update.bat");
+        var logPath = Path.Combine(updateDir, "update_log.txt");
+
+        // La copy puo' fallire silenziosamente (antivirus che scansiona il file appena scaricato,
+        // rilascio ritardato del lock sull'exe appena chiuso...): senza verifica e ritentativi lo
+        // script rilanciava semplicemente il vecchio exe senza che nessuno se ne accorgesse, dando
+        // l'impressione che l'aggiornamento non avesse effetto. Ora si ritenta piu' volte e si
+        // verifica la dimensione del file copiato prima di considerarlo riuscito.
         var scriptContent = $"""
             @echo off
+            echo [%date% %time%] Avvio aggiornamento, PID atteso {pid} > "{logPath}"
+
             set attempts=0
             :wait
             tasklist /FI "PID eq {pid}" /FO CSV /NH 2>nul | findstr /I "{AssetName}" >nul
@@ -123,10 +134,29 @@ public static class UpdateService
               goto wait
             )
             :proceed
-            timeout /t 1 /nobreak >nul
-            copy /y "{newExePath}" "{currentExePath}" >nul
+            echo [%date% %time%] Processo terminato, attendo rilascio file >> "{logPath}"
+            timeout /t 2 /nobreak >nul
+
+            set copyattempts=0
+            :copyloop
+            set /a copyattempts+=1
+            copy /y "{newExePath}" "{currentExePath}" >nul 2>>"{logPath}"
+            for %%A in ("{currentExePath}") do set destsize=%%~zA
+            if "%destsize%"=="{downloadedSize}" goto copyok
+            echo [%date% %time%] Tentativo di copia %copyattempts% non riuscito (dimensione %destsize%, attesa {downloadedSize}) >> "{logPath}"
+            if %copyattempts% GEQ 10 goto copyfailed
+            timeout /t 2 /nobreak >nul
+            goto copyloop
+
+            :copyok
+            echo [%date% %time%] Copia riuscita al tentativo %copyattempts% >> "{logPath}"
             start "" "{currentExePath}"
             del "%~f0"
+            exit /b
+
+            :copyfailed
+            echo [%date% %time%] Copia fallita dopo %copyattempts% tentativi: aggiornamento annullato >> "{logPath}"
+            start "" "{currentExePath}"
             """;
         await File.WriteAllTextAsync(scriptPath, scriptContent, ct);
 
