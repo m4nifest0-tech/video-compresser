@@ -22,20 +22,47 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Cartella destinazione:" Grid.Column="0" VerticalAlignment="Center"/>
+                        <TextBox x:Name="DestTextBox" Grid.Column="1" VerticalAlignment="Center" Margin="6,0" Padding="4"/>
+                        <Button x:Name="BrowseDestButton" Content="Sfoglia..." Grid.Column="2" Click="BrowseDest_Click" Padding="10,5"/>
+                    </Grid>
+
+                    <Grid Grid.Row="1" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Codec:" Grid.Column="0" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="CodecCombo" Grid.Column="1" Width="270" Margin="4,0,20,0" ItemTemplate="{StaticResource OptionItemTemplate}" SelectionChanged="CodecOrLevel_SelectionChanged"/>
+                        <Label Content="Livello compressione:" Grid.Column="2" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="LevelCombo" Grid.Column="3" Width="300" Margin="4,0" ItemTemplate="{StaticResource OptionItemTemplate}" SelectionChanged="CodecOrLevel_SelectionChanged"/>
+                    </Grid>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
                         <Button x:Name="AddFilesButton" Content="Aggiungi file..." Click="AddFiles_Click" Padding="10,5" Margin="0,0,6,0"/>
                         <Button x:Name="AddFolderButton" Content="Aggiungi cartella..." Click="AddFolder_Click" Padding="10,5" Margin="0,0,6,0"/>
                         <Button x:Name="RemoveSelectedButton" Content="Rimuovi selezionati" Click="RemoveSelected_Click" Padding="10,5" Margin="0,0,6,0"/>
                         <Button x:Name="ClearListButton" Content="Svuota lista" Click="ClearList_Click" Padding="10,5"/>
                     </StackPanel>
 
-                    <TextBlock Grid.Row="1" Text="Suggerimento: puoi anche trascinare qui file o cartelle da comprimere."
+                    <TextBlock Grid.Row="3" Text="Suggerimento: puoi anche trascinare qui file o cartelle da comprimere."
                                FontSize="11" Foreground="{DynamicResource SubForegroundBrush}" Margin="0,0,0,6"/>
 
-                    <DataGrid x:Name="FilesGrid" Grid.Row="2" AutoGenerateColumns="False" IsReadOnly="True"
+                    <DataGrid x:Name="FilesGrid" Grid.Row="4" AutoGenerateColumns="False" IsReadOnly="True"
                               SelectionMode="Extended" CanUserAddRows="False" RowHeaderWidth="0"
                               ScrollViewer.HorizontalScrollBarVisibility="Auto" Cursor="Arrow">
                         <DataGrid.Columns>
@@ -79,31 +106,6 @@
             <TabItem Header="Impostazioni">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="0,0,10,10">
-                    <Grid Margin="0,0,0,14">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="Cartella destinazione:" Grid.Column="0" VerticalAlignment="Center"/>
-                        <TextBox x:Name="DestTextBox" Grid.Column="1" VerticalAlignment="Center" Margin="6,0" Padding="4" TextChanged="DestTextBox_TextChanged"/>
-                        <Button x:Name="BrowseDestButton" Content="Sfoglia..." Grid.Column="2" Click="BrowseDest_Click" Padding="10,5"/>
-                    </Grid>
-
-                    <Grid Margin="0,0,0,14">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Content="Codec:" Grid.Column="0" VerticalAlignment="Center"/>
-                        <ComboBox x:Name="CodecCombo" Grid.Column="1" Width="270" Margin="4,0,20,0" ItemTemplate="{StaticResource OptionItemTemplate}" SelectionChanged="CodecOrLevel_SelectionChanged"/>
-                        <Label Content="Livello compressione:" Grid.Column="2" VerticalAlignment="Center"/>
-                        <ComboBox x:Name="LevelCombo" Grid.Column="3" Width="300" Margin="4,0" ItemTemplate="{StaticResource OptionItemTemplate}" SelectionChanged="CodecOrLevel_SelectionChanged"/>
-                    </Grid>
-
                     <StackPanel Margin="0,0,0,14">
                         <CheckBox x:Name="PreserveStructureCheck" Content="Mantieni struttura cartelle (per elementi aggiunti da cartella)" IsChecked="True" Margin="0,3"/>
                         <CheckBox x:Name="SkipExistingCheck" Content="Salta se il file di destinazione esiste gia" IsChecked="True" Margin="0,3"/>
@@ -157,12 +159,9 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <TextBlock x:Name="SettingsSummaryLabel" Grid.Row="0" Text="" Margin="0,0,0,6" TextWrapping="Wrap"
-                       Foreground="{DynamicResource SubForegroundBrush}" FontSize="12"/>
-            <ProgressBar x:Name="OverallProgress" Grid.Row="1" Height="20" Minimum="0"/>
-            <Grid Grid.Row="2" Margin="0,5">
+            <ProgressBar x:Name="OverallProgress" Grid.Row="0" Height="20" Minimum="0"/>
+            <Grid Grid.Row="1" Margin="0,5">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -170,8 +169,8 @@
                 <TextBlock x:Name="StatusLabel" Grid.Column="0" Text="Pronto."/>
                 <TextBlock x:Name="EtaLabel" Grid.Column="1" Text="" Foreground="{DynamicResource SubForegroundBrush}"/>
             </Grid>
-            <TextBlock x:Name="EstimateSummaryLabel" Grid.Row="3" Text="" Margin="0,0,0,5" Foreground="{DynamicResource SubForegroundBrush}"/>
-            <StackPanel Grid.Row="4" Orientation="Horizontal">
+            <TextBlock x:Name="EstimateSummaryLabel" Grid.Row="2" Text="" Margin="0,0,0,5" Foreground="{DynamicResource SubForegroundBrush}"/>
+            <StackPanel Grid.Row="3" Orientation="Horizontal">
                 <Button x:Name="EstimateButton" Content="Stima compressione" Click="Estimate_Click" Padding="12,7" Margin="0,0,6,0"/>
                 <Button x:Name="StartButton" Content="Avvia compressione" Click="Start_Click" Padding="12,7" Margin="0,0,6,0" Style="{StaticResource AccentButtonStyle}"/>
                 <Button x:Name="CancelButton" Content="Annulla" Click="Cancel_Click" Padding="12,7" IsEnabled="False"/>

@@ -10,56 +10,113 @@ public static class IndexHtml
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Compressore Video - Accesso remoto</title>
 <style>
-  :root { color-scheme: light dark; }
-  body { font-family: Segoe UI, Arial, sans-serif; margin: 0; padding: 16px; background: #f3f3f5; color: #1a1a1a; }
-  .topbar { display: flex; justify-content: space-between; align-items: baseline; }
-  h1 { font-size: 18px; margin: 0 0 4px; }
-  .sub { color: #666; font-size: 12px; margin-bottom: 16px; }
-  .card { background: #fff; border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+  :root {
+    color-scheme: light dark;
+    --bg: #eef0f5;
+    --fg: #1a1a1a;
+    --sub: #666;
+    --card-bg: rgba(255,255,255,.55);
+    --card-border: rgba(255,255,255,.6);
+    --card-shadow: 0 8px 32px rgba(31,38,135,.12);
+    --input-bg: rgba(255,255,255,.7);
+    --input-border: rgba(0,0,0,.12);
+    --row-border: rgba(0,0,0,.06);
+    --track: rgba(0,0,0,.08);
+    --accent: #2563eb;
+    --accent2: #7c3aed;
+  }
+  * { box-sizing: border-box; }
+  html, body { min-height: 100%; }
+  body {
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif; margin: 0; padding: 20px; color: var(--fg);
+    background: var(--bg);
+    background-image:
+      radial-gradient(600px circle at 8% 8%, rgba(124,58,237,.25), transparent 60%),
+      radial-gradient(600px circle at 92% 18%, rgba(37,99,235,.22), transparent 60%),
+      radial-gradient(700px circle at 50% 100%, rgba(16,185,129,.16), transparent 60%);
+    background-attachment: fixed;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  .topbar { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+  h1 { font-size: 20px; margin: 0 0 4px; letter-spacing: -.02em; }
+  .sub { color: var(--sub); font-size: 12px; }
+  .card {
+    background: var(--card-bg);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    backdrop-filter: blur(18px) saturate(160%);
+    border: 1px solid var(--card-border);
+    border-radius: 16px; padding: 16px 18px; margin-bottom: 16px;
+    box-shadow: var(--card-shadow);
+  }
   .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 10px; }
-  .row label { font-size: 12px; color: #555; display: block; margin-bottom: 3px; }
-  input[type=text], select { padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
-  button { padding: 8px 14px; border: 1px solid #888; border-radius: 4px; background: #eee; cursor: pointer; font-size: 13px; }
-  button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
-  button.link { border: none; background: none; color: #2563eb; padding: 0; font-size: 12px; }
-  button:disabled { opacity: .5; cursor: default; }
-  #dropzone { border: 2px dashed #aaa; border-radius: 8px; padding: 22px; text-align: center; color: #666; font-size: 13px; cursor: pointer; }
-  #dropzone.drag { border-color: #2563eb; color: #2563eb; background: #eef4ff; }
+  .row label { font-size: 12px; color: var(--sub); display: block; margin-bottom: 3px; }
+  input[type=text], select {
+    padding: 7px 10px; border: 1px solid var(--input-border); border-radius: 8px; font-size: 13px;
+    background: var(--input-bg); color: var(--fg);
+  }
+  button {
+    padding: 8px 16px; border: 1px solid rgba(0,0,0,.12); border-radius: 8px;
+    background: rgba(255,255,255,.6); color: var(--fg); cursor: pointer; font-size: 13px;
+    transition: transform .08s ease, background .15s ease;
+  }
+  button:hover:not(:disabled) { transform: translateY(-1px); }
+  button.primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; }
+  button.link { border: none; background: none; color: var(--accent); padding: 0; font-size: 12px; }
+  button:disabled { opacity: .5; cursor: default; transform: none; }
+  #dropzone {
+    border: 2px dashed rgba(0,0,0,.2); border-radius: 12px; padding: 26px; text-align: center;
+    color: var(--sub); font-size: 13px; cursor: pointer; transition: all .15s ease;
+  }
+  #dropzone.drag { border-color: var(--accent); color: var(--accent); background: rgba(37,99,235,.08); }
+  #uploadProgressWrap { margin-top: 12px; }
+  #uploadProgressWrap[hidden] { display: none; }
+  #uploadProgressLabel { font-size: 12px; color: var(--sub); display: block; margin-top: 4px; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eee; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--row-border); }
   progress { width: 100%; height: 14px; }
+  progress::-webkit-progress-bar { background: var(--track); border-radius: 7px; }
+  progress::-webkit-progress-value { background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 7px; }
+  progress::-moz-progress-bar { background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 7px; }
   .status-Errore { color: #c0392b; font-weight: bold; }
   .status-Completato { color: #1e8449; font-weight: bold; }
-  .status-In-corso { color: #2563eb; font-weight: bold; }
+  .status-In-corso { color: var(--accent); font-weight: bold; }
   #overallProgress { width: 100%; height: 18px; margin-bottom: 6px; }
-  #statusLine { display: flex; justify-content: space-between; font-size: 12px; color: #555; }
-  .actions button { font-size: 11px; padding: 4px 8px; margin-right: 4px; }
-  a.download { font-size: 12px; }
-  .gpu-title { font-size: 13px; font-weight: bold; margin-bottom: 8px; }
-  .gpu-card { border: 1px solid #eee; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
+  #statusLine { display: flex; justify-content: space-between; font-size: 12px; color: var(--sub); }
+  .actions button { font-size: 11px; padding: 4px 10px; margin-right: 4px; }
+  a.download { font-size: 12px; color: var(--accent); }
+  .gpu-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+  .gpu-card { border: 1px solid var(--row-border); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; background: rgba(255,255,255,.25); }
   .gpu-card:last-child { margin-bottom: 0; }
-  .gpu-name { font-size: 12px; font-weight: bold; margin-bottom: 8px; }
-  .gpu-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
-  .gpu-metric label { font-size: 11px; color: #777; display: block; margin-bottom: 3px; }
+  .gpu-name { font-size: 12px; font-weight: 600; margin-bottom: 8px; }
+  .gpu-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+  .gpu-metric label { font-size: 11px; color: var(--sub); display: block; margin-bottom: 3px; }
   .gpu-metric .value { font-size: 13px; font-weight: 600; }
-  .meter { height: 8px; border-radius: 4px; background: #eee; overflow: hidden; margin-top: 4px; }
-  .meter > div { height: 100%; background: #2563eb; }
+  .meter { height: 8px; border-radius: 4px; background: var(--track); overflow: hidden; margin-top: 4px; }
+  .meter > div { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
   .meter.warn > div { background: #e67e22; }
   .meter.hot > div { background: #c0392b; }
-  .gpu-empty { font-size: 12px; color: #777; }
+  .gpu-empty { font-size: 12px; color: var(--sub); }
   @media (prefers-color-scheme: dark) {
-    body { background: #1c1c1e; color: #eee; }
-    .card { background: #2a2a2d; box-shadow: none; }
-    th, td { border-color: #3a3a3d; }
-    input[type=text], select { background: #1c1c1e; color: #eee; border-color: #555; }
-    button { background: #3a3a3d; color: #eee; border-color: #666; }
-    .gpu-card { border-color: #3a3a3d; }
-    .gpu-metric label { color: #999; }
-    .meter { background: #3a3a3d; }
+    :root {
+      --bg: #131417; --fg: #eee; --sub: #999;
+      --card-bg: rgba(35,36,42,.55); --card-border: rgba(255,255,255,.08);
+      --card-shadow: 0 8px 32px rgba(0,0,0,.35);
+      --input-bg: rgba(255,255,255,.06); --input-border: rgba(255,255,255,.14);
+      --row-border: rgba(255,255,255,.08); --track: rgba(255,255,255,.1);
+    }
+    body {
+      background-image:
+        radial-gradient(600px circle at 8% 8%, rgba(124,58,237,.30), transparent 60%),
+        radial-gradient(600px circle at 92% 18%, rgba(37,99,235,.28), transparent 60%),
+        radial-gradient(700px circle at 50% 100%, rgba(16,185,129,.18), transparent 60%);
+    }
+    button { background: rgba(255,255,255,.08); }
+    .gpu-card { background: rgba(255,255,255,.03); }
   }
 </style>
 </head>
 <body>
+<div class="wrap">
   <div class="topbar">
     <div>
       <h1>Compressore Video</h1>
@@ -101,6 +158,10 @@ public static class IndexHtml
   <div class="card">
     <div id="dropzone">Trascina qui i video oppure clicca per selezionarli</div>
     <input type="file" id="fileInput" multiple accept="video/*" style="display:none">
+    <div id="uploadProgressWrap" hidden>
+      <progress id="uploadProgress" max="100" value="0"></progress>
+      <span id="uploadProgressLabel"></span>
+    </div>
   </div>
 
   <div class="card">
@@ -128,6 +189,7 @@ public static class IndexHtml
       <tbody id="itemsBody"></tbody>
     </table>
   </div>
+</div>
 
 <script>
 let settingsLoaded = false;
@@ -277,12 +339,46 @@ document.getElementById('cancelBtn').addEventListener('click', async () => {
   refresh();
 });
 
-async function uploadFiles(files) {
-  if (!files || files.length === 0) return;
+function uploadFiles(files) {
+  if (!files || files.length === 0) return Promise.resolve();
+
   const form = new FormData();
   for (const f of files) form.append('files', f);
-  try { await api('/api/upload', { method: 'POST', body: form }); } catch (e) { alert(e.message); }
-  refresh();
+
+  const wrap = document.getElementById('uploadProgressWrap');
+  const bar = document.getElementById('uploadProgress');
+  const label = document.getElementById('uploadProgressLabel');
+  wrap.hidden = false;
+  bar.value = 0;
+  label.textContent = `Caricamento di ${files.length} file: 0%`;
+
+  return new Promise(resolve => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/upload');
+    xhr.upload.addEventListener('progress', e => {
+      if (!e.lengthComputable) return;
+      const pct = Math.round(100 * e.loaded / e.total);
+      bar.value = pct;
+      label.textContent = `Caricamento di ${files.length} file: ${pct}%`;
+    });
+    xhr.addEventListener('load', () => {
+      wrap.hidden = true;
+      if (xhr.status === 401) { location.href = '/login'; resolve(); return; }
+      if (xhr.status < 200 || xhr.status >= 300) {
+        let msg = xhr.statusText;
+        try { const j = JSON.parse(xhr.responseText); if (j && j.error) msg = j.error; } catch {}
+        alert(msg);
+      }
+      refresh();
+      resolve();
+    });
+    xhr.addEventListener('error', () => {
+      wrap.hidden = true;
+      alert('Errore di rete durante il caricamento.');
+      resolve();
+    });
+    xhr.send(form);
+  });
 }
 
 const dropzone = document.getElementById('dropzone');

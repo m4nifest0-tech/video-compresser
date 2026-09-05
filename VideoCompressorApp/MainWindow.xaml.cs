@@ -93,8 +93,6 @@ public partial class MainWindow : Window
         AccentColorCombo.SelectedItem = AccentColors.FirstOrDefault(a => a.Value == settings.AccentColor) ?? AccentColors[0];
         _themeUiReady = true;
 
-        UpdateSettingsSummary();
-
         WebUiEnabledCheck.IsChecked = settings.WebUiEnabled;
         WebUiPortTextBox.Text = settings.WebUiPort.ToString();
         WebUiUsernameTextBox.Text = settings.WebUiUsername;
@@ -146,6 +144,14 @@ public partial class MainWindow : Window
         UpdateWebUiStatusLabel();
     }
 
+    public void NotifyWebUiServerCrashed(Exception ex)
+    {
+        _webUiServer = null;
+        UpdateWebUiStatusLabel();
+        MessageBox.Show($"L'interfaccia web si e' interrotta per un errore imprevisto:\n\n{ex.GetBaseException().Message}",
+            "Interfaccia web interrotta", MessageBoxButton.OK, MessageBoxImage.Error);
+    }
+
     private void WebUiApply_Click(object sender, RoutedEventArgs e)
     {
         bool enabled = WebUiEnabledCheck.IsChecked == true;
@@ -185,27 +191,10 @@ public partial class MainWindow : Window
         else StopWebUiServer();
     }
 
-    private void UpdateSettingsSummary()
-    {
-        if (SettingsSummaryLabel == null) return;
-        var codec = CodecCombo.SelectedItem as CodecOption;
-        var level = LevelCombo.SelectedItem as LevelOption;
-        var dest = DestTextBox?.Text?.Trim();
-
-        SettingsSummaryLabel.Text =
-            $"Codec: {codec?.Label ?? "-"}  ·  Livello: {level?.Label ?? "-"}  ·  Destinazione: {(string.IsNullOrEmpty(dest) ? "(non impostata)" : dest)}";
-    }
-
     private void CodecOrLevel_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         foreach (var item in _items) item.EstimatedSize = null;
         if (EstimateSummaryLabel != null) EstimateSummaryLabel.Text = "";
-        UpdateSettingsSummary();
-    }
-
-    private void DestTextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
-    {
-        UpdateSettingsSummary();
     }
 
     private void ThemeCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)

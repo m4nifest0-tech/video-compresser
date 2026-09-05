@@ -5,8 +5,10 @@ using System.Windows;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Net.Http.Headers;
 
 namespace VideoCompressor.Services;
 
@@ -170,19 +172,36 @@ public class WebUiServer
         {
             if (!request.HasFormContentType) return Results.BadRequest(new { error = "Richiesta non valida." });
 
-            var form = await request.ReadFormAsync();
+            var boundary = GetMultipartBoundary(request.ContentType);
+            if (boundary == null) return Results.BadRequest(new { error = "Richiesta non valida." });
+
             var uploadDir = Path.Combine(Path.GetTempPath(), "VideoCompressorUploads");
             Directory.CreateDirectory(uploadDir);
 
+            // Si legge il corpo multipart a mano invece di usare Request.ReadFormAsync(): quest'ultimo
+            // ha un limite di default di 128 MB e comunque bufferizza ogni file su un file temporaneo
+            // prima di restituirlo, raddoppiando le scritture su disco. Con MultipartReader ogni file
+            // viene invece copiato in streaming direttamente nella destinazione finale, indispensabile
+            // per i video da centinaia di MB o alcuni GB che questa app gestisce normalmente.
+            var reader = new MultipartReader(boundary, request.Body) { BodyLengthLimit = null };
             var savedPaths = new List<string>();
-            foreach (var file in form.Files)
+
+            MultipartSection? section;
+            while ((section = await reader.ReadNextSectionAsync()) != null)
             {
-                if (file.Length <= 0) continue;
-                var safeName = Path.GetFileName(file.FileName);
+                if (!ContentDispositionHeaderValue.TryParse(section.ContentDisposition, out var disposition)) continue;
+                if (!disposition.IsFileDisposition()) continue;
+
+                var safeName = Path.GetFileName(disposition.FileName.Value ?? "");
                 if (string.IsNullOrWhiteSpace(safeName)) continue;
+
                 var dest = Path.Combine(uploadDir, $"{Guid.NewGuid():N}_{safeName}");
-                await using var stream = File.Create(dest);
-                await file.CopyToAsync(stream);
+                await using (var stream = File.Create(dest))
+                {
+                    await section.Body.CopyToAsync(stream);
+                }
+
+                if (new FileInfo(dest).Length <= 0) { File.Delete(dest); continue; }
                 savedPaths.Add(dest);
             }
 
@@ -196,7 +215,13 @@ public class WebUiServer
         });
 
         _app = app;
-        app.RunAsync();
+        app.RunAsync().ContinueWith(t =>
+        {
+            // Se Kestrel si ferma per un'eccezione non gestita, l'app WPF continuerebbe a girare
+            // senza che nessuno se ne accorga: un avviso e' meglio di un'interfaccia web silenziosamente morta.
+            if (t.Exception == null) return;
+            Application.Current?.Dispatcher.BeginInvoke(new Action(() => MainWindow.Current?.NotifyWebUiServerCrashed(t.Exception)));
+        }, TaskContinuationOptions.OnlyOnFaulted);
     }
 
     public void Stop()
@@ -214,6 +239,14 @@ public class WebUiServer
 
     private static IResult Dispatch(Func<IResult> func) => Application.Current!.Dispatcher.Invoke(func);
 
+    private static string? GetMultipartBoundary(string? contentType)
+    {
+        if (string.IsNullOrEmpty(contentType) || !MediaTypeHeaderValue.TryParse(contentType, out var mediaType))
+            return null;
+        var boundary = HeaderUtilities.RemoveQuotes(mediaType.Boundary).Value;
+        return string.IsNullOrWhiteSpace(boundary) ? null : boundary;
+    }
+
     private void SetSessionCookie(HttpContext context)
     {
         var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
@@ -221,7 +254,7 @@ public class WebUiServer
         context.Response.Cookies.Append(SessionCookieName, token, new CookieOptions
         {
             HttpOnly = true,
-            SameSite = SameSiteMode.Lax,
+            SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Lax,
             Secure = false, // interfaccia pensata per rete locale in HTTP semplice
             Expires = DateTimeOffset.UtcNow + SessionLifetime,
             Path = "/",

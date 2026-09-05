@@ -10,38 +10,66 @@ public static class LoginHtml
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Compressore Video - Accesso</title>
 <style>
-  :root { color-scheme: light dark; }
+  :root {
+    color-scheme: light dark;
+    --bg: #eef0f5; --fg: #1a1a1a; --sub: #666;
+    --card-bg: rgba(255,255,255,.6); --card-border: rgba(255,255,255,.6);
+    --card-shadow: 0 8px 32px rgba(31,38,135,.15);
+    --input-bg: rgba(255,255,255,.7); --input-border: rgba(0,0,0,.14);
+    --accent: #2563eb; --accent2: #7c3aed;
+    --error-bg: rgba(192,57,43,.12); --error-border: rgba(192,57,43,.35); --error-fg: #c0392b;
+  }
+  * { box-sizing: border-box; }
   html, body { height: 100%; }
   body {
     margin: 0; display: flex; align-items: center; justify-content: center;
-    font-family: Segoe UI, Arial, sans-serif; background: #f3f3f5; color: #1a1a1a;
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif; color: var(--fg);
+    background: var(--bg);
+    background-image:
+      radial-gradient(700px circle at 15% 20%, rgba(124,58,237,.28), transparent 60%),
+      radial-gradient(700px circle at 85% 80%, rgba(37,99,235,.26), transparent 60%);
+    background-attachment: fixed;
   }
   .card {
-    width: 320px; background: #fff; border-radius: 10px; padding: 28px 26px;
-    box-shadow: 0 4px 18px rgba(0,0,0,.12);
+    width: 320px;
+    background: var(--card-bg);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid var(--card-border);
+    border-radius: 18px; padding: 30px 28px;
+    box-shadow: var(--card-shadow);
   }
-  .logo { text-align: center; font-size: 30px; margin-bottom: 6px; }
-  h1 { font-size: 17px; text-align: center; margin: 0 0 22px; }
-  label { font-size: 12px; color: #666; display: block; margin: 0 0 4px; }
+  .logo { text-align: center; font-size: 32px; margin-bottom: 6px; }
+  h1 {
+    font-size: 18px; text-align: center; margin: 0 0 24px; letter-spacing: -.02em;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  label { font-size: 12px; color: var(--sub); display: block; margin: 0 0 4px; }
   input[type=text], input[type=password] {
-    width: 100%; box-sizing: border-box; padding: 9px 10px; margin-bottom: 14px;
-    border: 1px solid #ccc; border-radius: 6px; font-size: 14px;
+    width: 100%; padding: 10px 12px; margin-bottom: 16px;
+    border: 1px solid var(--input-border); border-radius: 8px; font-size: 14px;
+    background: var(--input-bg); color: var(--fg);
   }
   button {
-    width: 100%; padding: 10px; border: none; border-radius: 6px; font-size: 14px;
-    background: #2563eb; color: #fff; cursor: pointer;
+    width: 100%; padding: 11px; border: none; border-radius: 8px; font-size: 14px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; cursor: pointer;
+    transition: transform .08s ease;
   }
-  button:hover { background: #1d4ed8; }
+  button:hover { transform: translateY(-1px); }
   .error {
-    background: #fdecea; color: #c0392b; border: 1px solid #f5c2bc; border-radius: 6px;
-    padding: 8px 10px; font-size: 12px; margin-bottom: 14px; display: none;
+    background: var(--error-bg); color: var(--error-fg); border: 1px solid var(--error-border);
+    border-radius: 8px; padding: 9px 11px; font-size: 12px; margin-bottom: 16px; display: none;
   }
   .error.show { display: block; }
   @media (prefers-color-scheme: dark) {
-    body { background: #1c1c1e; color: #eee; }
-    .card { background: #2a2a2d; box-shadow: none; }
-    input[type=text], input[type=password] { background: #1c1c1e; color: #eee; border-color: #555; }
-    .error { background: #3a2222; border-color: #6b3232; color: #f28b82; }
+    :root {
+      --bg: #131417; --fg: #eee; --sub: #999;
+      --card-bg: rgba(35,36,42,.6); --card-border: rgba(255,255,255,.08);
+      --card-shadow: 0 8px 32px rgba(0,0,0,.4);
+      --input-bg: rgba(255,255,255,.06); --input-border: rgba(255,255,255,.16);
+      --error-bg: rgba(192,57,43,.18); --error-border: rgba(192,57,43,.4); --error-fg: #f28b82;
+    }
   }
 </style>
 </head>
