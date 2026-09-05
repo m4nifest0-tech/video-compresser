@@ -183,7 +183,7 @@ public class WebUiServer
             // prima di restituirlo, raddoppiando le scritture su disco. Con MultipartReader ogni file
             // viene invece copiato in streaming direttamente nella destinazione finale, indispensabile
             // per i video da centinaia di MB o alcuni GB che questa app gestisce normalmente.
-            var reader = new MultipartReader(boundary, request.Body) { BodyLengthLimit = null };
+            var reader = new MultipartReader(boundary, request.Body, bufferSize: 1024 * 1024) { BodyLengthLimit = null };
             var savedPaths = new List<string>();
 
             MultipartSection? section;
@@ -196,9 +196,16 @@ public class WebUiServer
                 if (string.IsNullOrWhiteSpace(safeName)) continue;
 
                 var dest = Path.Combine(uploadDir, $"{Guid.NewGuid():N}_{safeName}");
-                await using (var stream = File.Create(dest))
+
+                // File.Create() apre lo stream con un buffer di 4 KB e I/O sincrono: per un video
+                // da qualche GB significa centinaia di migliaia di scritture minuscole. Un buffer
+                // da 1 MB in modalita' asincrona/sequenziale riduce drasticamente le chiamate al
+                // filesystem e velocizza sensibilmente l'upload di file di grandi dimensioni.
+                const int copyBufferSize = 1024 * 1024;
+                await using (var stream = new FileStream(dest, FileMode.Create, FileAccess.Write, FileShare.None,
+                    bufferSize: copyBufferSize, options: FileOptions.Asynchronous | FileOptions.SequentialScan))
                 {
-                    await section.Body.CopyToAsync(stream);
+                    await section.Body.CopyToAsync(stream, copyBufferSize);
                 }
 
                 if (new FileInfo(dest).Length <= 0) { File.Delete(dest); continue; }

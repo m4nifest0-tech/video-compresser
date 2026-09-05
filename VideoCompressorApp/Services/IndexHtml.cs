@@ -24,6 +24,9 @@ public static class IndexHtml
     --track: rgba(0,0,0,.08);
     --accent: #2563eb;
     --accent2: #7c3aed;
+    /* i menu a tendina nativi non renderizzano bene sfondi semi-trasparenti: qui serve un colore pieno */
+    --select-bg: #ffffff;
+    --select-fg: #1a1a1a;
   }
   * { box-sizing: border-box; }
   html, body { min-height: 100%; }
@@ -50,10 +53,15 @@ public static class IndexHtml
   }
   .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 10px; }
   .row label { font-size: 12px; color: var(--sub); display: block; margin-bottom: 3px; }
-  input[type=text], select {
+  input[type=text] {
     padding: 7px 10px; border: 1px solid var(--input-border); border-radius: 8px; font-size: 13px;
     background: var(--input-bg); color: var(--fg);
   }
+  select {
+    padding: 7px 10px; border: 1px solid var(--input-border); border-radius: 8px; font-size: 13px;
+    background: var(--select-bg); color: var(--select-fg);
+  }
+  select option { background: var(--select-bg); color: var(--select-fg); }
   button {
     padding: 8px 16px; border: 1px solid rgba(0,0,0,.12); border-radius: 8px;
     background: rgba(255,255,255,.6); color: var(--fg); cursor: pointer; font-size: 13px;
@@ -103,6 +111,7 @@ public static class IndexHtml
       --card-shadow: 0 8px 32px rgba(0,0,0,.35);
       --input-bg: rgba(255,255,255,.06); --input-border: rgba(255,255,255,.14);
       --row-border: rgba(255,255,255,.08); --track: rgba(255,255,255,.1);
+      --select-bg: #26272b; --select-fg: #eee;
     }
     body {
       background-image:
@@ -339,6 +348,15 @@ document.getElementById('cancelBtn').addEventListener('click', async () => {
   refresh();
 });
 
+function formatBytes(bytes) {
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  const units = ['MB', 'GB', 'TB'];
+  let size = bytes / (1024 * 1024);
+  let i = 0;
+  while (size >= 1024 && i < units.length - 1) { size /= 1024; i++; }
+  return `${size.toFixed(size >= 10 || i === 0 ? 0 : 2)} ${units[i]}`;
+}
+
 function uploadFiles(files) {
   if (!files || files.length === 0) return Promise.resolve();
 
@@ -352,14 +370,29 @@ function uploadFiles(files) {
   bar.value = 0;
   label.textContent = `Caricamento di ${files.length} file: 0%`;
 
+  let lastLoaded = 0;
+  let lastTime = performance.now();
+  let speedBytesPerSec = 0;
+
   return new Promise(resolve => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/api/upload');
     xhr.upload.addEventListener('progress', e => {
       if (!e.lengthComputable) return;
+      const now = performance.now();
+      const deltaTime = (now - lastTime) / 1000;
+      if (deltaTime > 0.2) {
+        const instantSpeed = (e.loaded - lastLoaded) / deltaTime;
+        // media mobile esponenziale: smorza le oscillazioni dei singoli campioni di rete
+        speedBytesPerSec = speedBytesPerSec === 0 ? instantSpeed : speedBytesPerSec * 0.7 + instantSpeed * 0.3;
+        lastLoaded = e.loaded;
+        lastTime = now;
+      }
+
       const pct = Math.round(100 * e.loaded / e.total);
       bar.value = pct;
-      label.textContent = `Caricamento di ${files.length} file: ${pct}%`;
+      const speedText = speedBytesPerSec > 0 ? ` a ${formatBytes(speedBytesPerSec)}/s` : '';
+      label.textContent = `${formatBytes(e.loaded)} / ${formatBytes(e.total)} (${pct}%)${speedText}`;
     });
     xhr.addEventListener('load', () => {
       wrap.hidden = true;

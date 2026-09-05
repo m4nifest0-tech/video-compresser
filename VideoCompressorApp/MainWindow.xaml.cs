@@ -16,6 +16,8 @@ public partial class MainWindow : Window
     private static readonly string[] VideoExtensions =
         { ".mp4", ".mov", ".avi", ".mkv", ".wmv", ".flv", ".webm", ".m4v", ".ts", ".3gp" };
 
+    private const string DefaultDestDir = @"C:\VideoCompressor\Output";
+
     public record CodecOption(string Label, string Value);
     public record LevelOption(string Label, int Cq);
     public record ThemeOption(string Label, string Value);
@@ -89,6 +91,7 @@ public partial class MainWindow : Window
         AccentColorCombo.ItemsSource = AccentColors;
 
         var settings = App.Settings;
+        DestTextBox.Text = string.IsNullOrWhiteSpace(settings.DestDir) ? DefaultDestDir : settings.DestDir;
         ThemeModeCombo.SelectedItem = ThemeModes.FirstOrDefault(t => t.Value == settings.ThemeMode) ?? ThemeModes[0];
         AccentColorCombo.SelectedItem = AccentColors.FirstOrDefault(a => a.Value == settings.AccentColor) ?? AccentColors[0];
         _themeUiReady = true;
@@ -393,7 +396,14 @@ public partial class MainWindow : Window
     {
         var dlg = new OpenFolderDialog { Title = "Seleziona cartella di destinazione" };
         if (dlg.ShowDialog() == true)
-            DestTextBox.Text = dlg.FolderName;
+            SetDestDir(dlg.FolderName);
+    }
+
+    private void SetDestDir(string dir)
+    {
+        DestTextBox.Text = dir;
+        App.Settings.DestDir = dir;
+        App.Settings.Save();
     }
 
     private static string UniqueDestPath(string destPath)
@@ -690,7 +700,7 @@ public partial class MainWindow : Window
             LevelCombo.SelectedItem = level;
         }
 
-        if (dto.DestDir != null) DestTextBox.Text = dto.DestDir;
+        if (dto.DestDir != null) SetDestDir(dto.DestDir);
         if (dto.PreserveStructure.HasValue) PreserveStructureCheck.IsChecked = dto.PreserveStructure.Value;
         if (dto.SkipExisting.HasValue) SkipExistingCheck.IsChecked = dto.SkipExisting.Value;
         if (dto.DeleteSource.HasValue) DeleteSourceCheck.IsChecked = dto.DeleteSource.Value;

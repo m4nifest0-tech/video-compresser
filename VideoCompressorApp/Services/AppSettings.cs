@@ -7,6 +7,7 @@ public class AppSettings
 {
     public string ThemeMode { get; set; } = "Light";
     public string AccentColor { get; set; } = "Blue";
+    public string DestDir { get; set; } = "";
 
     public bool WebUiEnabled { get; set; }
     public int WebUiPort { get; set; } = 5150;
