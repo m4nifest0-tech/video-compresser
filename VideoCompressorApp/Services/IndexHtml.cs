@@ -130,7 +130,7 @@ public static class IndexHtml
         radial-gradient(600px circle at 92% 18%, rgba(37,99,235,.28), transparent 60%),
         radial-gradient(700px circle at 50% 100%, rgba(16,185,129,.18), transparent 60%);
     }
-    html:not([data-theme="light"]) button { background: rgba(255,255,255,.08); }
+    html:not([data-theme="light"]) button:not(.primary) { background: rgba(255,255,255,.08); }
     html:not([data-theme="light"]) .gpu-card { background: rgba(255,255,255,.03); }
   }
   :root[data-theme="dark"] {
@@ -147,7 +147,7 @@ public static class IndexHtml
       radial-gradient(600px circle at 92% 18%, rgba(37,99,235,.28), transparent 60%),
       radial-gradient(700px circle at 50% 100%, rgba(16,185,129,.18), transparent 60%);
   }
-  html[data-theme="dark"] button { background: rgba(255,255,255,.08); }
+  html[data-theme="dark"] button:not(.primary) { background: rgba(255,255,255,.08); }
   html[data-theme="dark"] .gpu-card { background: rgba(255,255,255,.03); }
 
   [data-accent="green"] { --accent: #16a34a; --accent2: #0d9488; }
@@ -312,8 +312,11 @@ function renderGpu(gpus) {
     const memPercent = (g.memoryUsedMb != null && g.memoryTotalMb) ? (100 * g.memoryUsedMb / g.memoryTotalMb) : null;
     const memText = (g.memoryUsedMb != null && g.memoryTotalMb != null)
       ? `${Math.round(g.memoryUsedMb)} / ${Math.round(g.memoryTotalMb)} MB` : '-';
-    const powerText = (g.powerDrawW != null)
-      ? `${g.powerDrawW.toFixed(0)} W${g.powerLimitW ? ' / ' + g.powerLimitW.toFixed(0) + ' W' : ''}` : '-';
+    // Molte GPU (anche professionali) non espongono il consumo istantaneo (power.draw) via
+    // nvidia-smi ma riportano comunque il limite di potenza (power.limit): scartarlo insieme al
+    // consumo mostrava solo "-" anche quando l'unica informazione mancante era il consumo live.
+    const powerText = (g.powerDrawW == null && g.powerLimitW == null) ? '-'
+      : `${g.powerDrawW != null ? g.powerDrawW.toFixed(0) + ' W' : '-'}${g.powerLimitW != null ? ' / ' + g.powerLimitW.toFixed(0) + ' W limite' : ''}`;
     return `
       <div class="gpu-card">
         <div class="gpu-name">${escapeHtml(g.name)}</div>
