@@ -11,6 +11,7 @@ App desktop **C# / WPF (.NET 8)** con interfaccia grafica:
 - Stima della compressione prima di avviare: codifica un breve campione reale di ogni file per prevedere la dimensione finale
 - Cartella di destinazione, con opzione mantieni struttura cartelle
 - Avanzamento per singolo file (con barra di progresso) e complessivo, con tempo rimanente stimato
+- Monitoraggio GPU in tempo reale (temperatura, utilizzo, memoria, potenza, ventola) tramite `nvidia-smi`, sempre visibile sopra la barra di avanzamento
 - Temi Chiaro/Scuro con 4 colori accento (Blu, Verde, Viola, Arancione), salvati automaticamente
 - Interfaccia web opzionale (scheda Impostazioni > "Accesso da remoto"): permette di caricare/scaricare video e pilotare la coda da un browser su un altro PC della stessa rete locale, con pagina di login dedicata (sessione via cookie, protezione anti brute-force), monitoraggio GPU in tempo reale (temperatura, utilizzo, memoria, potenza, ventola) tramite `nvidia-smi` e temi Chiaro/Scuro/Sistema con gli stessi 4 colori accento dell'app desktop, salvati per browser
 - Controllo aggiornamenti integrato (scheda Impostazioni > "Aggiornamenti"): confronta la versione installata con l'ultima release GitHub e, se disponibile, scarica e installa l'aggiornamento con un click (l'app si riavvia da sola)

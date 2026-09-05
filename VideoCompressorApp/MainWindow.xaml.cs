@@ -71,6 +71,7 @@ public partial class MainWindow : Window
     private readonly List<double> _completedItemSeconds = new();
     private bool _themeUiReady;
     private WebUiServer? _webUiServer;
+    private readonly CancellationTokenSource _gpuPollCts = new();
 
     public static MainWindow? Current { get; private set; }
 
@@ -112,8 +113,51 @@ public partial class MainWindow : Window
         };
         Closed += async (_, _) =>
         {
+            _gpuPollCts.Cancel();
             if (_webUiServer != null) await _webUiServer.StopAsync();
         };
+
+        _ = PollGpuLoopAsync(_gpuPollCts.Token);
+    }
+
+    /// <summary>
+    /// nvidia-smi impiega qualche decina/centinaio di ms per rispondere: viene interrogato su un
+    /// thread separato (Task.Run) cosi' da non bloccare mai la UI, e il risultato marshalled sul
+    /// thread UI solo per l'aggiornamento del testo.
+    /// </summary>
+    private async Task PollGpuLoopAsync(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            List<GpuStat> stats;
+            try { stats = await Task.Run(() => GpuInfoService.GetStats(), ct); }
+            catch (OperationCanceledException) { break; }
+            catch { stats = new List<GpuStat>(); }
+
+            if (ct.IsCancellationRequested) break;
+            GpuStatusLabel.Text = FormatGpuStatus(stats);
+
+            try { await Task.Delay(2000, ct); }
+            catch (OperationCanceledException) { break; }
+        }
+    }
+
+    private static string FormatGpuStatus(List<GpuStat> stats)
+    {
+        if (stats.Count == 0) return "GPU: non rilevata (nvidia-smi non disponibile)";
+        return string.Join("     ", stats.Select(FormatGpuStat));
+    }
+
+    private static string FormatGpuStat(GpuStat g)
+    {
+        var parts = new List<string> { g.Name };
+        if (g.TemperatureC is { } t) parts.Add($"{t:0} °C");
+        if (g.UtilizationGpuPercent is { } u) parts.Add($"GPU {u:0}%");
+        if (g.MemoryUsedMb is { } mu && g.MemoryTotalMb is { } mt) parts.Add($"Mem {mu:0}/{mt:0} MB");
+        if (g.PowerDrawW is { } pw) parts.Add(g.PowerLimitW is { } pl ? $"{pw:0}/{pl:0} W" : $"{pw:0} W");
+        else if (g.PowerLimitW is { } plOnly) parts.Add($"-/{plOnly:0} W");
+        if (g.FanSpeedPercent is { } f) parts.Add($"Ventola {f:0}%");
+        return string.Join("  ·  ", parts);
     }
 
     private bool _updateCheckInProgress;
