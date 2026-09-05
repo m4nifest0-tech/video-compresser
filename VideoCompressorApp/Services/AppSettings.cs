@@ -8,6 +8,11 @@ public class AppSettings
     public string ThemeMode { get; set; } = "Light";
     public string AccentColor { get; set; } = "Blue";
 
+    public bool WebUiEnabled { get; set; }
+    public int WebUiPort { get; set; } = 5150;
+    public string WebUiUsername { get; set; } = "";
+    public string WebUiPasswordHash { get; set; } = "";
+
     private static string SettingsPath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "VideoCompressor", "settings.json");

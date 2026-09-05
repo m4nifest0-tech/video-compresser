@@ -20,14 +20,26 @@ public partial class MainWindow : Window
     public record LevelOption(string Label, int Cq);
     public record ThemeOption(string Label, string Value);
 
-    private static readonly CodecOption[] Codecs =
+    public sealed record ItemDto(string Id, string FileName, long OriginalSize, string OriginalSizeText,
+        string Status, double ProgressPercent, string ProgressText, string EstimatedSizeText, string ResultSizeText,
+        bool HasResult, bool HasErrorLog, string? ErrorDetail);
+
+    public sealed record StateDto(bool Busy, string StatusText, string EtaText, string EstimateSummaryText,
+        double OverallProgressValue, double OverallProgressMax, string DestDir, string CodecValue, int LevelCq,
+        bool PreserveStructure, bool SkipExisting, bool DeleteSource,
+        IReadOnlyList<CodecOption> Codecs, IReadOnlyList<LevelOption> Levels, IReadOnlyList<ItemDto> Items);
+
+    public sealed record SettingsUpdateDto(string? DestDir, string? CodecValue, int? LevelCq,
+        bool? PreserveStructure, bool? SkipExisting, bool? DeleteSource);
+
+    public static readonly CodecOption[] Codecs =
     {
         new("H.264 (massima compatibilita)", "h264_nvenc"),
         new("H.265 / HEVC (file piu piccoli)", "hevc_nvenc"),
         new("AV1 (compressione migliore, richiede RTX serie 40+)", "av1_nvenc"),
     };
 
-    private static readonly LevelOption[] Levels =
+    public static readonly LevelOption[] Levels =
     {
         new("Qualita massima (file piu grande)", 18),
         new("Alta qualita", 23),
@@ -56,10 +68,16 @@ public partial class MainWindow : Window
     private Stopwatch? _currentItemStopwatch;
     private readonly List<double> _completedItemSeconds = new();
     private bool _themeUiReady;
+    private WebUiServer? _webUiServer;
+
+    public static MainWindow? Current { get; private set; }
+
+    public bool IsBusy => _cts != null;
 
     public MainWindow()
     {
         InitializeComponent();
+        Current = this;
         FilesGrid.ItemsSource = _items;
 
         CodecCombo.ItemsSource = Codecs;
@@ -74,12 +92,120 @@ public partial class MainWindow : Window
         ThemeModeCombo.SelectedItem = ThemeModes.FirstOrDefault(t => t.Value == settings.ThemeMode) ?? ThemeModes[0];
         AccentColorCombo.SelectedItem = AccentColors.FirstOrDefault(a => a.Value == settings.AccentColor) ?? AccentColors[0];
         _themeUiReady = true;
+
+        UpdateSettingsSummary();
+
+        WebUiEnabledCheck.IsChecked = settings.WebUiEnabled;
+        WebUiPortTextBox.Text = settings.WebUiPort.ToString();
+        WebUiUsernameTextBox.Text = settings.WebUiUsername;
+        UpdateWebUiStatusLabel();
+
+        Loaded += (_, _) =>
+        {
+            if (settings.WebUiEnabled) StartWebUiServer();
+        };
+        Closed += (_, _) => _webUiServer?.Stop();
+    }
+
+    private void UpdateWebUiStatusLabel()
+    {
+        if (_webUiServer == null)
+        {
+            WebUiStatusLabel.Text = "Interfaccia web non attiva.";
+            return;
+        }
+
+        var addresses = string.Join(", ", NetworkInfo.GetLocalIPv4Addresses()
+            .Select(ip => $"http://{ip}:{App.Settings.WebUiPort}/"));
+        WebUiStatusLabel.Text = string.IsNullOrEmpty(addresses)
+            ? $"Interfaccia web attiva sulla porta {App.Settings.WebUiPort}."
+            : $"Interfaccia web attiva: {addresses}";
+    }
+
+    private void StartWebUiServer()
+    {
+        _webUiServer?.Stop();
+        _webUiServer = null;
+        try
+        {
+            _webUiServer = new WebUiServer(App.Settings.WebUiPort);
+            _webUiServer.Start();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Impossibile avviare l'interfaccia web: {ex.Message}", "Errore interfaccia web",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        UpdateWebUiStatusLabel();
+    }
+
+    private void StopWebUiServer()
+    {
+        _webUiServer?.Stop();
+        _webUiServer = null;
+        UpdateWebUiStatusLabel();
+    }
+
+    private void WebUiApply_Click(object sender, RoutedEventArgs e)
+    {
+        bool enabled = WebUiEnabledCheck.IsChecked == true;
+        string username = WebUiUsernameTextBox.Text.Trim();
+        string password = WebUiPasswordBox.Password;
+
+        if (!int.TryParse(WebUiPortTextBox.Text.Trim(), out int port) || port is <= 0 or > 65535)
+        {
+            MessageBox.Show("Porta non valida. Usa un numero tra 1 e 65535.", "Porta non valida",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (enabled && string.IsNullOrWhiteSpace(username))
+        {
+            MessageBox.Show("Imposta un nome utente per proteggere l'interfaccia web.", "Utente mancante",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        if (enabled && string.IsNullOrEmpty(App.Settings.WebUiPasswordHash) && string.IsNullOrEmpty(password))
+        {
+            MessageBox.Show("Imposta una password per proteggere l'interfaccia web.", "Password mancante",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        App.Settings.WebUiEnabled = enabled;
+        App.Settings.WebUiPort = port;
+        App.Settings.WebUiUsername = username;
+        if (!string.IsNullOrEmpty(password))
+            App.Settings.WebUiPasswordHash = PasswordHasher.Hash(password);
+        App.Settings.Save();
+        WebUiPasswordBox.Clear();
+
+        if (enabled) StartWebUiServer();
+        else StopWebUiServer();
+    }
+
+    private void UpdateSettingsSummary()
+    {
+        if (SettingsSummaryLabel == null) return;
+        var codec = CodecCombo.SelectedItem as CodecOption;
+        var level = LevelCombo.SelectedItem as LevelOption;
+        var dest = DestTextBox?.Text?.Trim();
+
+        SettingsSummaryLabel.Text =
+            $"Codec: {codec?.Label ?? "-"}  ·  Livello: {level?.Label ?? "-"}  ·  Destinazione: {(string.IsNullOrEmpty(dest) ? "(non impostata)" : dest)}";
     }
 
     private void CodecOrLevel_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         foreach (var item in _items) item.EstimatedSize = null;
         if (EstimateSummaryLabel != null) EstimateSummaryLabel.Text = "";
+        UpdateSettingsSummary();
+    }
+
+    private void DestTextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        UpdateSettingsSummary();
     }
 
     private void ThemeCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -309,22 +435,27 @@ public partial class MainWindow : Window
         return Path.Combine(destDir, name);
     }
 
+    public string? ValidateForEstimate()
+    {
+        if (_items.Count == 0) return "Aggiungi almeno un file o una cartella.";
+        if (!FfmpegService.IsFfmpegAvailable()) return "ffmpeg non e stato trovato nel PATH. Installalo e riprova.";
+        return null;
+    }
+
     private async void Estimate_Click(object sender, RoutedEventArgs e)
     {
-        if (_items.Count == 0)
+        var error = ValidateForEstimate();
+        if (error != null)
         {
-            MessageBox.Show("Aggiungi almeno un file o una cartella.", "Lista vuota",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(error, "Impossibile avviare la stima", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
-        if (!FfmpegService.IsFfmpegAvailable())
-        {
-            MessageBox.Show("ffmpeg non e stato trovato nel PATH. Installalo e riprova.", "ffmpeg non trovato",
-                MessageBoxButton.OK, MessageBoxImage.Error);
-            return;
-        }
+        await RunEstimateAsync();
+    }
 
+    public async Task RunEstimateAsync()
+    {
         var codec = (CodecOption)CodecCombo.SelectedItem;
         var level = (LevelOption)LevelCombo.SelectedItem;
         var itemsSnapshot = _items.ToList();
@@ -386,30 +517,29 @@ public partial class MainWindow : Window
         _cts = null;
     }
 
+    public string? ValidateForStart()
+    {
+        if (_items.Count == 0) return "Aggiungi almeno un file o una cartella.";
+        if (string.IsNullOrEmpty(DestTextBox.Text.Trim())) return "Scegli una cartella di destinazione.";
+        if (!FfmpegService.IsFfmpegAvailable()) return "ffmpeg non e stato trovato nel PATH. Installalo e riprova.";
+        return null;
+    }
+
     private async void Start_Click(object sender, RoutedEventArgs e)
     {
-        if (_items.Count == 0)
+        var error = ValidateForStart();
+        if (error != null)
         {
-            MessageBox.Show("Aggiungi almeno un file o una cartella.", "Lista vuota",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(error, "Impossibile avviare la compressione", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
+        await RunCompressionAsync();
+    }
+
+    public async Task RunCompressionAsync()
+    {
         var destDir = DestTextBox.Text.Trim();
-        if (string.IsNullOrEmpty(destDir))
-        {
-            MessageBox.Show("Scegli una cartella di destinazione.", "Destinazione mancante",
-                MessageBoxButton.OK, MessageBoxImage.Warning);
-            return;
-        }
-
-        if (!FfmpegService.IsFfmpegAvailable())
-        {
-            MessageBox.Show("ffmpeg non e stato trovato nel PATH. Installalo e riprova.", "ffmpeg non trovato",
-                MessageBoxButton.OK, MessageBoxImage.Error);
-            return;
-        }
-
         Directory.CreateDirectory(destDir);
 
         var codec = (CodecOption)CodecCombo.SelectedItem;
@@ -529,10 +659,69 @@ public partial class MainWindow : Window
         _cts = null;
     }
 
-    private void Cancel_Click(object sender, RoutedEventArgs e)
+    private void Cancel_Click(object sender, RoutedEventArgs e) => Cancel();
+
+    public void Cancel()
     {
         _cts?.Cancel();
         StatusLabel.Text = "Annullamento in corso...";
+    }
+
+    /// <summary>
+    /// Aggiunge un file caricato dall'interfaccia web alla coda, cosi' da essere trattato
+    /// esattamente come un file aggiunto dal desktop (stessa lista, stesse impostazioni).
+    /// </summary>
+    public void AddUploadedFile(string path) => _items.Add(new VideoItem(path, null));
+
+    public VideoItem? FindItem(Guid id) => _items.FirstOrDefault(i => i.Id == id);
+
+    public bool RemoveItemById(Guid id)
+    {
+        var item = FindItem(id);
+        if (item == null) return false;
+        _items.Remove(item);
+        return true;
+    }
+
+    public string? ApplySettings(SettingsUpdateDto dto)
+    {
+        if (IsBusy) return "Impossibile modificare le impostazioni mentre una compressione e' in corso.";
+
+        if (dto.CodecValue != null)
+        {
+            var codec = Codecs.FirstOrDefault(c => c.Value == dto.CodecValue);
+            if (codec == null) return $"Codec sconosciuto: {dto.CodecValue}";
+            CodecCombo.SelectedItem = codec;
+        }
+
+        if (dto.LevelCq.HasValue)
+        {
+            var level = Levels.FirstOrDefault(l => l.Cq == dto.LevelCq.Value);
+            if (level == null) return $"Livello di compressione sconosciuto: {dto.LevelCq.Value}";
+            LevelCombo.SelectedItem = level;
+        }
+
+        if (dto.DestDir != null) DestTextBox.Text = dto.DestDir;
+        if (dto.PreserveStructure.HasValue) PreserveStructureCheck.IsChecked = dto.PreserveStructure.Value;
+        if (dto.SkipExisting.HasValue) SkipExistingCheck.IsChecked = dto.SkipExisting.Value;
+        if (dto.DeleteSource.HasValue) DeleteSourceCheck.IsChecked = dto.DeleteSource.Value;
+
+        return null;
+    }
+
+    public StateDto GetState()
+    {
+        var codec = (CodecOption)CodecCombo.SelectedItem;
+        var level = (LevelOption)LevelCombo.SelectedItem;
+
+        var items = _items.Select(i => new ItemDto(i.Id.ToString(), i.FileName, i.OriginalSize, i.OriginalSizeText,
+            i.Status, i.ProgressPercent, i.ProgressText, i.EstimatedSizeText, i.ResultSizeText, i.HasResult,
+            i.HasErrorLog, i.ErrorDetail)).ToList();
+
+        return new StateDto(IsBusy, StatusLabel.Text, EtaLabel.Text, EstimateSummaryLabel.Text,
+            OverallProgress.Value, OverallProgress.Maximum, DestTextBox.Text, codec.Value, level.Cq,
+            PreserveStructureCheck.IsChecked == true, SkipExistingCheck.IsChecked == true,
+            DeleteSourceCheck.IsChecked == true, Codecs, Levels, items);
     }
 
     /// <summary>

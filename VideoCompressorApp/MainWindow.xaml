@@ -77,7 +77,8 @@
             </TabItem>
 
             <TabItem Header="Impostazioni">
-                <StackPanel>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="0,0,10,10">
                     <Grid Margin="0,0,0,14">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -85,7 +86,7 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <Label Content="Cartella destinazione:" Grid.Column="0" VerticalAlignment="Center"/>
-                        <TextBox x:Name="DestTextBox" Grid.Column="1" VerticalAlignment="Center" Margin="6,0" Padding="4"/>
+                        <TextBox x:Name="DestTextBox" Grid.Column="1" VerticalAlignment="Center" Margin="6,0" Padding="4" TextChanged="DestTextBox_TextChanged"/>
                         <Button x:Name="BrowseDestButton" Content="Sfoglia..." Grid.Column="2" Click="BrowseDest_Click" Padding="10,5"/>
                     </Grid>
 
@@ -109,13 +110,44 @@
                         <CheckBox x:Name="DeleteSourceCheck" Content="Elimina l'originale dopo compressione riuscita (irreversibile)" Margin="0,3"/>
                     </StackPanel>
 
-                    <StackPanel Orientation="Horizontal">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
                         <TextBlock Text="Tema:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{DynamicResource SubForegroundBrush}"/>
                         <ComboBox x:Name="ThemeModeCombo" Width="90" Margin="0,0,14,0" SelectionChanged="ThemeCombo_SelectionChanged" ItemTemplate="{StaticResource OptionItemTemplate}"/>
                         <TextBlock Text="Colore:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{DynamicResource SubForegroundBrush}"/>
                         <ComboBox x:Name="AccentColorCombo" Width="100" SelectionChanged="ThemeCombo_SelectionChanged" ItemTemplate="{StaticResource OptionItemTemplate}"/>
                     </StackPanel>
+
+                    <TextBlock Text="Accesso da remoto (rete locale)" FontWeight="Bold" Margin="0,0,0,8"/>
+                    <TextBlock Text="Permette di caricare e scaricare video da un browser su un altro PC della stessa rete."
+                               FontSize="11" Foreground="{DynamicResource SubForegroundBrush}" Margin="0,0,0,10" TextWrapping="Wrap"/>
+
+                    <CheckBox x:Name="WebUiEnabledCheck" Content="Abilita interfaccia web" Margin="0,0,0,10"/>
+
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="140"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Content="Porta:" Grid.Column="0" VerticalAlignment="Center"/>
+                        <TextBox x:Name="WebUiPortTextBox" Grid.Column="1" VerticalAlignment="Center" Margin="4,0,20,0" Padding="4"/>
+                        <Label Content="Utente:" Grid.Column="2" VerticalAlignment="Center"/>
+                        <TextBox x:Name="WebUiUsernameTextBox" Grid.Column="3" VerticalAlignment="Center" Margin="4,0,20,0" Padding="4"/>
+                        <Label Content="Password:" Grid.Column="4" VerticalAlignment="Center"/>
+                        <PasswordBox x:Name="WebUiPasswordBox" Grid.Column="5" VerticalAlignment="Center" Margin="4,0" Padding="4"/>
+                    </Grid>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Content="Applica" Click="WebUiApply_Click" Padding="10,5"/>
+                    </StackPanel>
+
+                    <TextBlock x:Name="WebUiStatusLabel" Text="Interfaccia web non attiva." TextWrapping="Wrap"
+                               Foreground="{DynamicResource SubForegroundBrush}"/>
                 </StackPanel>
+                </ScrollViewer>
             </TabItem>
         </TabControl>
 
@@ -125,9 +157,12 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <ProgressBar x:Name="OverallProgress" Grid.Row="0" Height="20" Minimum="0"/>
-            <Grid Grid.Row="1" Margin="0,5">
+            <TextBlock x:Name="SettingsSummaryLabel" Grid.Row="0" Text="" Margin="0,0,0,6" TextWrapping="Wrap"
+                       Foreground="{DynamicResource SubForegroundBrush}" FontSize="12"/>
+            <ProgressBar x:Name="OverallProgress" Grid.Row="1" Height="20" Minimum="0"/>
+            <Grid Grid.Row="2" Margin="0,5">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -135,8 +170,8 @@
                 <TextBlock x:Name="StatusLabel" Grid.Column="0" Text="Pronto."/>
                 <TextBlock x:Name="EtaLabel" Grid.Column="1" Text="" Foreground="{DynamicResource SubForegroundBrush}"/>
             </Grid>
-            <TextBlock x:Name="EstimateSummaryLabel" Grid.Row="2" Text="" Margin="0,0,0,5" Foreground="{DynamicResource SubForegroundBrush}"/>
-            <StackPanel Grid.Row="3" Orientation="Horizontal">
+            <TextBlock x:Name="EstimateSummaryLabel" Grid.Row="3" Text="" Margin="0,0,0,5" Foreground="{DynamicResource SubForegroundBrush}"/>
+            <StackPanel Grid.Row="4" Orientation="Horizontal">
                 <Button x:Name="EstimateButton" Content="Stima compressione" Click="Estimate_Click" Padding="12,7" Margin="0,0,6,0"/>
                 <Button x:Name="StartButton" Content="Avvia compressione" Click="Start_Click" Padding="12,7" Margin="0,0,6,0" Style="{StaticResource AccentButtonStyle}"/>
                 <Button x:Name="CancelButton" Content="Annulla" Click="Cancel_Click" Padding="12,7" IsEnabled="False"/>

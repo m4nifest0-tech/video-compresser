@@ -6,6 +6,7 @@ namespace VideoCompressor.Models;
 
 public class VideoItem : INotifyPropertyChanged
 {
+    public Guid Id { get; } = Guid.NewGuid();
     public string SourcePath { get; }
     public string? BaseRoot { get; }
     public long OriginalSize { get; }
