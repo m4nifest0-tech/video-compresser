@@ -116,10 +116,12 @@ public static class UpdateService
         var logPath = Path.Combine(updateDir, "update_log.txt");
 
         // La copy puo' fallire silenziosamente (antivirus che scansiona il file appena scaricato,
-        // rilascio ritardato del lock sull'exe appena chiuso...): senza verifica e ritentativi lo
-        // script rilanciava semplicemente il vecchio exe senza che nessuno se ne accorgesse, dando
-        // l'impressione che l'aggiornamento non avesse effetto. Ora si ritenta piu' volte e si
-        // verifica la dimensione del file copiato prima di considerarlo riuscito.
+        // rilascio ritardato del lock sull'exe appena chiuso, un'istanza duplicata rimasta aperta...):
+        // senza verifica e ritentativi lo script rilanciava semplicemente il vecchio exe senza che
+        // nessuno se ne accorgesse, dando l'impressione che l'aggiornamento non avesse effetto. Ora
+        // si ritenta piu' a lungo e si verifica la dimensione del file copiato prima di considerarlo
+        // riuscito. Il mutex di singola istanza (App.xaml.cs) evita che un'istanza duplicata tenga
+        // bloccato il file all'infinito; questi margini piu' ampi coprono i casi restanti (antivirus).
         var scriptContent = $"""
             @echo off
             echo [%date% %time%] Avvio aggiornamento, PID atteso {pid} > "{logPath}"
@@ -129,12 +131,17 @@ public static class UpdateService
             tasklist /FI "PID eq {pid}" /FO CSV /NH 2>nul | findstr /I "{AssetName}" >nul
             if not errorlevel 1 (
               set /a attempts+=1
-              if %attempts% GEQ 30 goto proceed
+              if %attempts% GEQ 60 goto waitgaveup
               timeout /t 1 /nobreak >nul
               goto wait
             )
+            echo [%date% %time%] Processo terminato dopo %attempts% secondi, attendo rilascio file >> "{logPath}"
+            goto proceed
+
+            :waitgaveup
+            echo [%date% %time%] Attesa chiusura processo scaduta dopo 60s, procedo comunque >> "{logPath}"
+
             :proceed
-            echo [%date% %time%] Processo terminato, attendo rilascio file >> "{logPath}"
             timeout /t 2 /nobreak >nul
 
             set copyattempts=0
@@ -144,8 +151,8 @@ public static class UpdateService
             for %%A in ("{currentExePath}") do set destsize=%%~zA
             if "%destsize%"=="{downloadedSize}" goto copyok
             echo [%date% %time%] Tentativo di copia %copyattempts% non riuscito (dimensione %destsize%, attesa {downloadedSize}) >> "{logPath}"
-            if %copyattempts% GEQ 10 goto copyfailed
-            timeout /t 2 /nobreak >nul
+            if %copyattempts% GEQ 20 goto copyfailed
+            timeout /t 3 /nobreak >nul
             goto copyloop
 
             :copyok
