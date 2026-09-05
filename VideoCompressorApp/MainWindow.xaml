@@ -147,6 +147,17 @@
                     </StackPanel>
 
                     <TextBlock x:Name="WebUiStatusLabel" Text="Interfaccia web non attiva." TextWrapping="Wrap"
+                               Foreground="{DynamicResource SubForegroundBrush}" Margin="0,0,0,20"/>
+
+                    <TextBlock Text="Aggiornamenti" FontWeight="Bold" Margin="0,0,0,8"/>
+                    <TextBlock x:Name="VersionLabel" Text="Versione installata: -" Margin="0,0,0,8"
+                               Foreground="{DynamicResource SubForegroundBrush}"/>
+                    <CheckBox x:Name="CheckUpdatesOnStartupCheck" Content="Controlla automaticamente all'avvio"
+                              Margin="0,0,0,10" Checked="CheckUpdatesOnStartupCheck_Changed" Unchecked="CheckUpdatesOnStartupCheck_Changed"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button x:Name="CheckUpdatesButton" Content="Controlla aggiornamenti" Click="CheckUpdates_Click" Padding="10,5"/>
+                    </StackPanel>
+                    <TextBlock x:Name="UpdateStatusLabel" Text="" TextWrapping="Wrap"
                                Foreground="{DynamicResource SubForegroundBrush}"/>
                 </StackPanel>
                 </ScrollViewer>

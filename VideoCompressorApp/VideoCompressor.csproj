@@ -12,6 +12,7 @@
     <Platforms>x64</Platforms>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <ApplicationIcon>app.ico</ApplicationIcon>
+    <Version>1.10.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

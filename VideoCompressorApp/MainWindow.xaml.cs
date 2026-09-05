@@ -101,11 +101,87 @@ public partial class MainWindow : Window
         WebUiUsernameTextBox.Text = settings.WebUiUsername;
         UpdateWebUiStatusLabel();
 
+        Title = $"Compressore Video (GPU NVENC) - v{UpdateService.CurrentVersionText}";
+        VersionLabel.Text = $"Versione installata: {UpdateService.CurrentVersionText}";
+        CheckUpdatesOnStartupCheck.IsChecked = settings.CheckUpdatesOnStartup;
+
         Loaded += (_, _) =>
         {
             if (settings.WebUiEnabled) StartWebUiServer();
+            if (settings.CheckUpdatesOnStartup) _ = CheckForUpdatesAsync(silent: true);
         };
         Closed += (_, _) => _webUiServer?.Stop();
+    }
+
+    private bool _updateCheckInProgress;
+
+    private async Task CheckForUpdatesAsync(bool silent)
+    {
+        if (_updateCheckInProgress) return;
+        _updateCheckInProgress = true;
+        CheckUpdatesButton.IsEnabled = false;
+        if (!silent) UpdateStatusLabel.Text = "Controllo aggiornamenti in corso...";
+
+        try
+        {
+            var update = await UpdateService.CheckForUpdateAsync();
+            if (update == null)
+            {
+                UpdateStatusLabel.Text = silent ? "" : $"Sei gia' aggiornato alla versione piu' recente (v{UpdateService.CurrentVersionText}).";
+                return;
+            }
+
+            if (IsBusy)
+            {
+                UpdateStatusLabel.Text = $"E' disponibile la versione v{update.Version}: attendi il termine dell'elaborazione in corso per installarla.";
+                return;
+            }
+
+            UpdateStatusLabel.Text = $"E' disponibile la versione v{update.Version}.";
+            var result = MessageBox.Show(
+                $"E' disponibile la versione v{update.Version} (installata: v{UpdateService.CurrentVersionText}).\n\nVuoi scaricarla e installarla ora? L'app si riavviera' automaticamente.",
+                "Aggiornamento disponibile", MessageBoxButton.YesNo, MessageBoxImage.Information);
+
+            if (result == MessageBoxResult.Yes)
+                await ApplyUpdateAsync(update);
+        }
+        catch (Exception ex)
+        {
+            UpdateStatusLabel.Text = silent ? "" : $"Impossibile controllare gli aggiornamenti: {ex.Message}";
+        }
+        finally
+        {
+            _updateCheckInProgress = false;
+            CheckUpdatesButton.IsEnabled = true;
+        }
+    }
+
+    private async Task ApplyUpdateAsync(UpdateInfo update)
+    {
+        UpdateStatusLabel.Text = "Download aggiornamento: 0%";
+        var progress = new Progress<double>(pct => UpdateStatusLabel.Text = $"Download aggiornamento: {pct:0}%");
+
+        try
+        {
+            await UpdateService.DownloadAndApplyAsync(update, progress);
+        }
+        catch (Exception ex)
+        {
+            UpdateStatusLabel.Text = $"Aggiornamento fallito: {ex.Message}";
+            MessageBox.Show($"Impossibile completare l'aggiornamento:\n\n{ex.Message}", "Errore aggiornamento",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        Application.Current.Shutdown();
+    }
+
+    private async void CheckUpdates_Click(object sender, RoutedEventArgs e) => await CheckForUpdatesAsync(silent: false);
+
+    private void CheckUpdatesOnStartupCheck_Changed(object sender, RoutedEventArgs e)
+    {
+        App.Settings.CheckUpdatesOnStartup = CheckUpdatesOnStartupCheck.IsChecked == true;
+        App.Settings.Save();
     }
 
     private void UpdateWebUiStatusLabel()
