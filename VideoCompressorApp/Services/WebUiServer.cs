@@ -250,20 +250,34 @@ public class WebUiServer
         }, TaskContinuationOptions.OnlyOnFaulted);
     }
 
-    public void Stop()
+    /// <summary>
+    /// Deve essere await-ata dal thread UI, mai bloccata con GetAwaiter().GetResult(): lo shutdown
+    /// di Kestrel attende che le richieste in corso finiscano, e queste (tramite Dispatch) hanno
+    /// bisogno proprio del thread UI per completare. Bloccarlo qui li farebbe attendere a vicenda
+    /// all'infinito (l'app si "impianta" cliccando Applica con l'interfaccia web aperta altrove).
+    /// </summary>
+    public async Task StopAsync()
     {
         try
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-            _app?.StopAsync(cts.Token).GetAwaiter().GetResult();
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            if (_app != null) await _app.StopAsync(cts.Token);
         }
-        catch { /* server gia' in chiusura */ }
+        catch { /* server gia' in chiusura o timeout di spegnimento */ }
         _app = null;
         _sessions.Clear();
         _loginAttempts.Clear();
     }
 
-    private static IResult Dispatch(Func<IResult> func) => Application.Current!.Dispatcher.Invoke(func);
+    /// <summary>
+    /// Limita l'attesa sul thread UI: se e' occupato piu' di 5s (es. proprio durante uno stop/riavvio
+    /// del server) la richiesta fallisce con 503 invece di restare appesa indefinitamente.
+    /// </summary>
+    private static IResult Dispatch(Func<IResult> func)
+    {
+        var result = (IResult?)Application.Current!.Dispatcher.Invoke((Delegate)func, TimeSpan.FromSeconds(5));
+        return result ?? Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+    }
 
     private static string? GetMultipartBoundary(string? contentType)
     {

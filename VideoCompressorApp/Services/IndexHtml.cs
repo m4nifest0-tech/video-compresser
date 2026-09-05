@@ -249,9 +249,9 @@ function meterClass(percent) {
   return 'meter';
 }
 
-function metric(label, valueText, percent) {
+function metric(icon, label, valueText, percent) {
   const bar = percent == null ? '' : `<div class="${meterClass(percent)}"><div style="width:${Math.min(100, Math.max(0, percent))}%"></div></div>`;
-  return `<div class="gpu-metric"><label>${label}</label><div class="value">${valueText}</div>${bar}</div>`;
+  return `<div class="gpu-metric"><label>${icon} ${label}</label><div class="value">${valueText}</div>${bar}</div>`;
 }
 
 function renderGpu(gpus) {
@@ -271,11 +271,11 @@ function renderGpu(gpus) {
       <div class="gpu-card">
         <div class="gpu-name">${escapeHtml(g.name)}</div>
         <div class="gpu-metrics">
-          ${metric('Temperatura', g.temperatureC != null ? g.temperatureC.toFixed(0) + ' &deg;C' : '-', g.temperatureC != null ? (g.temperatureC / 90 * 100) : null)}
-          ${metric('Utilizzo GPU', g.utilizationGpuPercent != null ? g.utilizationGpuPercent.toFixed(0) + ' %' : '-', g.utilizationGpuPercent)}
-          ${metric('Utilizzo memoria', g.utilizationMemPercent != null ? g.utilizationMemPercent.toFixed(0) + ' %' : '-', g.utilizationMemPercent)}
-          ${metric('Memoria', memText, memPercent)}
-          ${metric('Potenza', powerText, null)}
+          ${metric('&#127777;&#65039;', 'Temperatura', g.temperatureC != null ? g.temperatureC.toFixed(0) + ' &deg;C' : '-', g.temperatureC != null ? (g.temperatureC / 90 * 100) : null)}
+          ${metric('&#9881;&#65039;', 'Utilizzo GPU', g.utilizationGpuPercent != null ? g.utilizationGpuPercent.toFixed(0) + ' %' : '-', g.utilizationGpuPercent)}
+          ${metric('&#128202;', 'Utilizzo memoria', g.utilizationMemPercent != null ? g.utilizationMemPercent.toFixed(0) + ' %' : '-', g.utilizationMemPercent)}
+          ${metric('&#128190;', 'Memoria', memText, memPercent)}
+          ${metric('&#9889;', 'Potenza', powerText, null)}
         </div>
       </div>`;
   }).join('');

@@ -105,12 +105,15 @@ public partial class MainWindow : Window
         VersionLabel.Text = $"Versione installata: {UpdateService.CurrentVersionText}";
         CheckUpdatesOnStartupCheck.IsChecked = settings.CheckUpdatesOnStartup;
 
-        Loaded += (_, _) =>
+        Loaded += async (_, _) =>
         {
-            if (settings.WebUiEnabled) StartWebUiServer();
+            if (settings.WebUiEnabled) await StartWebUiServerAsync();
             if (settings.CheckUpdatesOnStartup) _ = CheckForUpdatesAsync(silent: true);
         };
-        Closed += (_, _) => _webUiServer?.Stop();
+        Closed += async (_, _) =>
+        {
+            if (_webUiServer != null) await _webUiServer.StopAsync();
+        };
     }
 
     private bool _updateCheckInProgress;
@@ -199,9 +202,9 @@ public partial class MainWindow : Window
             : $"Interfaccia web attiva: {addresses}";
     }
 
-    private void StartWebUiServer()
+    private async Task StartWebUiServerAsync()
     {
-        _webUiServer?.Stop();
+        if (_webUiServer != null) await _webUiServer.StopAsync();
         _webUiServer = null;
         try
         {
@@ -216,9 +219,9 @@ public partial class MainWindow : Window
         UpdateWebUiStatusLabel();
     }
 
-    private void StopWebUiServer()
+    private async Task StopWebUiServerAsync()
     {
-        _webUiServer?.Stop();
+        if (_webUiServer != null) await _webUiServer.StopAsync();
         _webUiServer = null;
         UpdateWebUiStatusLabel();
     }
@@ -231,7 +234,7 @@ public partial class MainWindow : Window
             "Interfaccia web interrotta", MessageBoxButton.OK, MessageBoxImage.Error);
     }
 
-    private void WebUiApply_Click(object sender, RoutedEventArgs e)
+    private async void WebUiApply_Click(object sender, RoutedEventArgs e)
     {
         bool enabled = WebUiEnabledCheck.IsChecked == true;
         string username = WebUiUsernameTextBox.Text.Trim();
@@ -266,8 +269,8 @@ public partial class MainWindow : Window
         App.Settings.Save();
         WebUiPasswordBox.Clear();
 
-        if (enabled) StartWebUiServer();
-        else StopWebUiServer();
+        if (enabled) await StartWebUiServerAsync();
+        else await StopWebUiServerAsync();
     }
 
     private void CodecOrLevel_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
