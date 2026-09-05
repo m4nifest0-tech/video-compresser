@@ -1,5 +1,6 @@
+using System.Collections.Concurrent;
 using System.IO;
-using System.Text;
+using System.Security.Cryptography;
 using System.Windows;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -11,14 +12,25 @@ namespace VideoCompressor.Services;
 
 /// <summary>
 /// Piccolo server web (Kestrel), eseguito nello stesso processo della finestra WPF, che espone
-/// coda, impostazioni e upload/download in modo che un altro PC sulla rete locale possa pilotare
-/// la stessa compressione mostrata a schermo. Le mutazioni della coda condivisa (_items) devono
-/// avvenire sul thread UI: ogni handler passa quindi da Dispatch/Application.Current.Dispatcher.
+/// coda, impostazioni, upload/download e metriche GPU in modo che un altro PC sulla rete locale
+/// possa pilotare la stessa compressione mostrata a schermo. Le mutazioni della coda condivisa
+/// (_items) devono avvenire sul thread UI: ogni handler che le tocca passa quindi da
+/// Dispatch/Application.Current.Dispatcher.
+///
+/// L'accesso e' protetto da una pagina di login (invece della finestra Basic Auth del browser)
+/// con una sessione tenuta in memoria (cookie opaco -> scadenza), persa ai riavvii del server web.
 /// </summary>
 public class WebUiServer
 {
+    private const string SessionCookieName = "vc_session";
+    private static readonly TimeSpan SessionLifetime = TimeSpan.FromHours(12);
+    private const int MaxLoginAttempts = 5;
+    private static readonly TimeSpan LoginAttemptWindow = TimeSpan.FromMinutes(5);
+
     private readonly int _port;
     private WebApplication? _app;
+    private readonly ConcurrentDictionary<string, DateTime> _sessions = new();
+    private readonly ConcurrentDictionary<string, (int Count, DateTime WindowStartUtc)> _loginAttempts = new();
 
     public WebUiServer(int port)
     {
@@ -39,18 +51,68 @@ public class WebUiServer
 
         app.Use(async (context, next) =>
         {
-            if (!IsAuthorized(context.Request))
+            var path = context.Request.Path;
+            if (path == "/login" || path == "/logout")
             {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                context.Response.Headers.WWWAuthenticate = "Basic realm=\"Compressore Video\"";
+                await next();
                 return;
             }
-            await next();
+
+            if (IsSessionValid(context.Request))
+            {
+                await next();
+                return;
+            }
+
+            if (path.StartsWithSegments("/api"))
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.Response.WriteAsJsonAsync(new { error = "Sessione scaduta, effettua di nuovo l'accesso." });
+                return;
+            }
+
+            context.Response.Redirect("/login");
+        });
+
+        app.MapGet("/login", () => Results.Content(LoginHtml.Content, "text/html; charset=utf-8"));
+
+        app.MapPost("/login", async (HttpContext context) =>
+        {
+            var form = await context.Request.ReadFormAsync();
+            var username = form["username"].ToString();
+            var password = form["password"].ToString();
+            var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+            if (IsRateLimited(ip)) return Results.Redirect("/login?error=locked");
+
+            var settings = App.Settings;
+            bool ok = !string.IsNullOrEmpty(settings.WebUiUsername) && !string.IsNullOrEmpty(settings.WebUiPasswordHash)
+                && username == settings.WebUiUsername && PasswordHasher.Verify(password, settings.WebUiPasswordHash);
+
+            if (!ok)
+            {
+                RegisterFailedLogin(ip);
+                return Results.Redirect("/login?error=1");
+            }
+
+            _loginAttempts.TryRemove(ip, out _);
+            SetSessionCookie(context);
+            return Results.Redirect("/");
+        });
+
+        app.MapPost("/logout", (HttpContext context) =>
+        {
+            if (context.Request.Cookies.TryGetValue(SessionCookieName, out var token))
+                _sessions.TryRemove(token, out _);
+            context.Response.Cookies.Delete(SessionCookieName);
+            return Results.Ok();
         });
 
         app.MapGet("/", () => Results.Content(IndexHtml.Content, "text/html; charset=utf-8"));
 
         app.MapGet("/api/state", () => Dispatch(() => Results.Json(MainWindow.Current!.GetState())));
+
+        app.MapGet("/api/gpu", () => Results.Json(GpuInfoService.GetStats()));
 
         app.MapPost("/api/estimate", () => Dispatch(() =>
         {
@@ -146,32 +208,60 @@ public class WebUiServer
         }
         catch { /* server gia' in chiusura */ }
         _app = null;
+        _sessions.Clear();
+        _loginAttempts.Clear();
     }
 
     private static IResult Dispatch(Func<IResult> func) => Application.Current!.Dispatcher.Invoke(func);
 
-    private static bool IsAuthorized(HttpRequest request)
+    private void SetSessionCookie(HttpContext context)
     {
-        var settings = App.Settings;
-        if (string.IsNullOrEmpty(settings.WebUiUsername) || string.IsNullOrEmpty(settings.WebUiPasswordHash))
-            return false;
-
-        var header = request.Headers.Authorization.ToString();
-        if (string.IsNullOrEmpty(header) || !header.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        try
+        var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        _sessions[token] = DateTime.UtcNow + SessionLifetime;
+        context.Response.Cookies.Append(SessionCookieName, token, new CookieOptions
         {
-            var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(header["Basic ".Length..].Trim()));
-            var separatorIndex = decoded.IndexOf(':');
-            if (separatorIndex < 0) return false;
-            var user = decoded[..separatorIndex];
-            var pass = decoded[(separatorIndex + 1)..];
-            return user == settings.WebUiUsername && PasswordHasher.Verify(pass, settings.WebUiPasswordHash);
-        }
-        catch
+            HttpOnly = true,
+            SameSite = SameSiteMode.Lax,
+            Secure = false, // interfaccia pensata per rete locale in HTTP semplice
+            Expires = DateTimeOffset.UtcNow + SessionLifetime,
+            Path = "/",
+        });
+    }
+
+    private bool IsSessionValid(HttpRequest request)
+    {
+        if (!request.Cookies.TryGetValue(SessionCookieName, out var token) || string.IsNullOrEmpty(token))
+            return false;
+        if (!_sessions.TryGetValue(token, out var expiry)) return false;
+        if (expiry < DateTime.UtcNow)
         {
+            _sessions.TryRemove(token, out _);
             return false;
         }
+        return true;
+    }
+
+    /// <summary>
+    /// Blocco basilare anti brute-force: dopo troppi tentativi falliti dallo stesso IP entro
+    /// la finestra temporale, i login vengono rifiutati finche' la finestra non si azzera.
+    /// </summary>
+    private bool IsRateLimited(string ip)
+    {
+        if (!_loginAttempts.TryGetValue(ip, out var attempt)) return false;
+        if (DateTime.UtcNow - attempt.WindowStartUtc > LoginAttemptWindow)
+        {
+            _loginAttempts.TryRemove(ip, out _);
+            return false;
+        }
+        return attempt.Count >= MaxLoginAttempts;
+    }
+
+    private void RegisterFailedLogin(string ip)
+    {
+        _loginAttempts.AddOrUpdate(ip,
+            _ => (1, DateTime.UtcNow),
+            (_, current) => DateTime.UtcNow - current.WindowStartUtc > LoginAttemptWindow
+                ? (1, DateTime.UtcNow)
+                : (current.Count + 1, current.WindowStartUtc));
     }
 }

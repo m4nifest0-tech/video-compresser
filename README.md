@@ -12,7 +12,7 @@ App desktop **C# / WPF (.NET 8)** con interfaccia grafica:
 - Cartella di destinazione, con opzione mantieni struttura cartelle
 - Avanzamento per singolo file (con barra di progresso) e complessivo, con tempo rimanente stimato
 - Temi Chiaro/Scuro con 4 colori accento (Blu, Verde, Viola, Arancione), salvati automaticamente
-- Interfaccia web opzionale (scheda Impostazioni > "Accesso da remoto"): permette di caricare/scaricare video e pilotare la coda da un browser su un altro PC della stessa rete locale, protetta da autenticazione Basic
+- Interfaccia web opzionale (scheda Impostazioni > "Accesso da remoto"): permette di caricare/scaricare video e pilotare la coda da un browser su un altro PC della stessa rete locale, con pagina di login dedicata (sessione via cookie, protezione anti brute-force) e monitoraggio GPU in tempo reale (temperatura, utilizzo, memoria, potenza) tramite `nvidia-smi`
 
 | Tema chiaro | Tema scuro |
 |---|---|

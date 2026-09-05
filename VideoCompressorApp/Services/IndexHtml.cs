@@ -12,6 +12,7 @@ public static class IndexHtml
 <style>
   :root { color-scheme: light dark; }
   body { font-family: Segoe UI, Arial, sans-serif; margin: 0; padding: 16px; background: #f3f3f5; color: #1a1a1a; }
+  .topbar { display: flex; justify-content: space-between; align-items: baseline; }
   h1 { font-size: 18px; margin: 0 0 4px; }
   .sub { color: #666; font-size: 12px; margin-bottom: 16px; }
   .card { background: #fff; border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
@@ -20,6 +21,7 @@ public static class IndexHtml
   input[type=text], select { padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
   button { padding: 8px 14px; border: 1px solid #888; border-radius: 4px; background: #eee; cursor: pointer; font-size: 13px; }
   button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+  button.link { border: none; background: none; color: #2563eb; padding: 0; font-size: 12px; }
   button:disabled { opacity: .5; cursor: default; }
   #dropzone { border: 2px dashed #aaa; border-radius: 8px; padding: 22px; text-align: center; color: #666; font-size: 13px; cursor: pointer; }
   #dropzone.drag { border-color: #2563eb; color: #2563eb; background: #eef4ff; }
@@ -33,18 +35,43 @@ public static class IndexHtml
   #statusLine { display: flex; justify-content: space-between; font-size: 12px; color: #555; }
   .actions button { font-size: 11px; padding: 4px 8px; margin-right: 4px; }
   a.download { font-size: 12px; }
+  .gpu-title { font-size: 13px; font-weight: bold; margin-bottom: 8px; }
+  .gpu-card { border: 1px solid #eee; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; }
+  .gpu-card:last-child { margin-bottom: 0; }
+  .gpu-name { font-size: 12px; font-weight: bold; margin-bottom: 8px; }
+  .gpu-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .gpu-metric label { font-size: 11px; color: #777; display: block; margin-bottom: 3px; }
+  .gpu-metric .value { font-size: 13px; font-weight: 600; }
+  .meter { height: 8px; border-radius: 4px; background: #eee; overflow: hidden; margin-top: 4px; }
+  .meter > div { height: 100%; background: #2563eb; }
+  .meter.warn > div { background: #e67e22; }
+  .meter.hot > div { background: #c0392b; }
+  .gpu-empty { font-size: 12px; color: #777; }
   @media (prefers-color-scheme: dark) {
     body { background: #1c1c1e; color: #eee; }
     .card { background: #2a2a2d; box-shadow: none; }
     th, td { border-color: #3a3a3d; }
     input[type=text], select { background: #1c1c1e; color: #eee; border-color: #555; }
     button { background: #3a3a3d; color: #eee; border-color: #666; }
+    .gpu-card { border-color: #3a3a3d; }
+    .gpu-metric label { color: #999; }
+    .meter { background: #3a3a3d; }
   }
 </style>
 </head>
 <body>
-  <h1>Compressore Video</h1>
-  <div class="sub">Accesso remoto - carica video, avvia la compressione e scarica il risultato.</div>
+  <div class="topbar">
+    <div>
+      <h1>Compressore Video</h1>
+      <div class="sub">Accesso remoto - carica video, avvia la compressione e scarica il risultato.</div>
+    </div>
+    <button class="link" id="logoutBtn">Esci</button>
+  </div>
+
+  <div class="card">
+    <div class="gpu-title">GPU</div>
+    <div id="gpuBody"><div class="gpu-empty">Lettura in corso...</div></div>
+  </div>
 
   <div class="card">
     <div class="row">
@@ -111,6 +138,10 @@ function escapeHtml(s) {
 
 async function api(path, opts) {
   const res = await fetch(path, opts);
+  if (res.status === 401) {
+    location.href = '/login';
+    throw new Error('Sessione scaduta.');
+  }
   if (!res.ok) {
     let msg = res.statusText;
     try { const j = await res.json(); if (j && j.error) msg = j.error; } catch {}
@@ -141,6 +172,44 @@ function fillSelect(sel, options, valueKey, labelKey, selectedValue) {
   sel.value = selectedValue;
 }
 
+function meterClass(percent) {
+  if (percent >= 90) return 'meter hot';
+  if (percent >= 75) return 'meter warn';
+  return 'meter';
+}
+
+function metric(label, valueText, percent) {
+  const bar = percent == null ? '' : `<div class="${meterClass(percent)}"><div style="width:${Math.min(100, Math.max(0, percent))}%"></div></div>`;
+  return `<div class="gpu-metric"><label>${label}</label><div class="value">${valueText}</div>${bar}</div>`;
+}
+
+function renderGpu(gpus) {
+  const body = document.getElementById('gpuBody');
+  if (!gpus || gpus.length === 0) {
+    body.innerHTML = '<div class="gpu-empty">GPU NVIDIA non rilevata (nvidia-smi non disponibile).</div>';
+    return;
+  }
+
+  body.innerHTML = gpus.map(g => {
+    const memPercent = (g.memoryUsedMb != null && g.memoryTotalMb) ? (100 * g.memoryUsedMb / g.memoryTotalMb) : null;
+    const memText = (g.memoryUsedMb != null && g.memoryTotalMb != null)
+      ? `${Math.round(g.memoryUsedMb)} / ${Math.round(g.memoryTotalMb)} MB` : '-';
+    const powerText = (g.powerDrawW != null)
+      ? `${g.powerDrawW.toFixed(0)} W${g.powerLimitW ? ' / ' + g.powerLimitW.toFixed(0) + ' W' : ''}` : '-';
+    return `
+      <div class="gpu-card">
+        <div class="gpu-name">${escapeHtml(g.name)}</div>
+        <div class="gpu-metrics">
+          ${metric('Temperatura', g.temperatureC != null ? g.temperatureC.toFixed(0) + ' &deg;C' : '-', g.temperatureC != null ? (g.temperatureC / 90 * 100) : null)}
+          ${metric('Utilizzo GPU', g.utilizationGpuPercent != null ? g.utilizationGpuPercent.toFixed(0) + ' %' : '-', g.utilizationGpuPercent)}
+          ${metric('Utilizzo memoria', g.utilizationMemPercent != null ? g.utilizationMemPercent.toFixed(0) + ' %' : '-', g.utilizationMemPercent)}
+          ${metric('Memoria', memText, memPercent)}
+          ${metric('Potenza', powerText, null)}
+        </div>
+      </div>`;
+  }).join('');
+}
+
 async function refresh() {
   let state;
   try { state = await api('/api/state'); } catch { return; }
@@ -166,10 +235,19 @@ async function refresh() {
   renderItems(state.items);
 }
 
+async function refreshGpu() {
+  try { renderGpu(await api('/api/gpu')); } catch { /* la prossima chiamata riprovera' */ }
+}
+
 async function removeItem(id) {
   try { await api('/api/items/' + id, { method: 'DELETE' }); } catch (e) { alert(e.message); }
   refresh();
 }
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  try { await api('/logout', { method: 'POST' }); } catch {}
+  location.href = '/login';
+});
 
 document.getElementById('applySettings').addEventListener('click', async () => {
   const body = {
@@ -220,7 +298,9 @@ dropzone.addEventListener('drop', e => {
 });
 
 refresh();
+refreshGpu();
 setInterval(refresh, 1500);
+setInterval(refreshGpu, 2000);
 </script>
 </body>
 </html>
