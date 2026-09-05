@@ -145,6 +145,16 @@ public class WebUiServer
             return Results.Ok(new { started = true });
         }));
 
+        app.MapPost("/api/optimize", () => Dispatch(() =>
+        {
+            var mw = MainWindow.Current!;
+            var error = mw.ValidateForOptimize();
+            if (error != null) return Results.BadRequest(new { error });
+            if (mw.IsBusy) return Results.Conflict(new { error = "Operazione gia' in corso." });
+            mw.Dispatcher.BeginInvoke(new Action(async () => await mw.RunOptimizeAsync()));
+            return Results.Ok(new { started = true });
+        }));
+
         app.MapPost("/api/start", () => Dispatch(() =>
         {
             var mw = MainWindow.Current!;

@@ -50,6 +50,8 @@
                         <ComboBox x:Name="CodecCombo" Grid.Column="1" Width="270" Margin="4,0,20,0" ItemTemplate="{StaticResource OptionItemTemplate}" SelectionChanged="CodecOrLevel_SelectionChanged"/>
                         <Label Content="Livello compressione:" Grid.Column="2" VerticalAlignment="Center"/>
                         <ComboBox x:Name="LevelCombo" Grid.Column="3" Width="300" Margin="4,0" ItemTemplate="{StaticResource OptionItemTemplate}" SelectionChanged="CodecOrLevel_SelectionChanged"/>
+                        <Button x:Name="OptimizeButton" Content="Calcola valori ottimali" Grid.Column="4" HorizontalAlignment="Right"
+                                Click="Optimize_Click" Padding="10,5" ToolTip="Analizza risoluzione, fps e durata dei file in coda e propone codec/livello adatti"/>
                     </Grid>
 
                     <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">

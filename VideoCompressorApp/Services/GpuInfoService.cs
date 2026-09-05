@@ -5,7 +5,8 @@ using System.Text.RegularExpressions;
 namespace VideoCompressor.Services;
 
 public record GpuStat(string Name, double? TemperatureC, double? UtilizationGpuPercent, double? UtilizationMemPercent,
-    double? MemoryUsedMb, double? MemoryTotalMb, double? PowerDrawW, double? PowerLimitW, double? FanSpeedPercent);
+    double? MemoryUsedMb, double? MemoryTotalMb, double? PowerDrawW, double? PowerLimitW, double? FanSpeedPercent,
+    double? EncoderUtilizationPercent, double? DecoderUtilizationPercent, double? EncoderSessionCount, double? EncoderAvgFps);
 
 /// <summary>
 /// Legge le metriche della GPU NVIDIA tramite nvidia-smi (incluso con i driver NVIDIA, nessuna
@@ -51,8 +52,11 @@ public static class GpuInfoService
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
+            // utilization.encoder/decoder ed encoder.stats.* sono i piu' rilevanti per un progetto
+            // di codifica video: utilization.gpu riflette il motore 3D/compute generale, non il
+            // blocco NVENC/NVDEC dedicato che questa app usa davvero (vedi note su potenza/utilizzo).
             psi.ArgumentList.Add(
-                "--query-gpu=name,temperature.gpu,utilization.gpu,utilization.memory,memory.used,memory.total,power.draw,power.limit,fan.speed");
+                "--query-gpu=name,temperature.gpu,utilization.gpu,utilization.memory,memory.used,memory.total,power.draw,power.limit,fan.speed,utilization.encoder,utilization.decoder,encoder.stats.sessionCount,encoder.stats.averageFps");
             psi.ArgumentList.Add("--format=csv,noheader,nounits");
 
             using var proc = Process.Start(psi);
@@ -70,7 +74,7 @@ public static class GpuInfoService
             foreach (var rawLine in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             {
                 var parts = rawLine.Split(',').Select(p => p.Trim()).ToArray();
-                if (parts.Length < 9) continue;
+                if (parts.Length < 13) continue;
 
                 stats.Add(new GpuStat(
                     parts[0],
@@ -81,7 +85,11 @@ public static class GpuInfoService
                     ParseDouble(parts[5]),
                     ParseDouble(parts[6]),
                     ParseDouble(parts[7]),
-                    ParseDouble(parts[8])));
+                    ParseDouble(parts[8]),
+                    ParseDouble(parts[9]),
+                    ParseDouble(parts[10]),
+                    ParseDouble(parts[11]),
+                    ParseDouble(parts[12])));
             }
             return stats;
         }

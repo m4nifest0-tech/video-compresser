@@ -76,6 +76,91 @@ public class FfmpegService
     }
 
     /// <summary>
+    /// Legge risoluzione, fps e durata in un'unica chiamata ffprobe: serve al calcolo delle
+    /// impostazioni ottimali (codec/livello) proposte in base alle caratteristiche del video.
+    /// </summary>
+    public async Task<VideoProbeResult> ProbeAsync(string filePath, CancellationToken ct)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "ffprobe",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            psi.ArgumentList.Add("-v");
+            psi.ArgumentList.Add("error");
+            psi.ArgumentList.Add("-select_streams");
+            psi.ArgumentList.Add("v:0");
+            psi.ArgumentList.Add("-show_entries");
+            psi.ArgumentList.Add("stream=width,height,r_frame_rate:format=duration");
+            psi.ArgumentList.Add("-of");
+            psi.ArgumentList.Add("default=noprint_wrappers=1");
+            psi.ArgumentList.Add(filePath);
+
+            using var proc = Process.Start(psi);
+            if (proc == null) return new VideoProbeResult(null, null, null, null, "Impossibile avviare ffprobe.");
+
+            var stderrTask = proc.StandardError.ReadToEndAsync();
+            string output = await proc.StandardOutput.ReadToEndAsync(ct);
+            await proc.WaitForExitAsync(ct);
+            string stderr = "";
+            try { stderr = await stderrTask; } catch { /* ignora */ }
+
+            int? width = null, height = null;
+            double? fps = null, duration = null;
+            foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var kv = line.Split('=', 2);
+                if (kv.Length != 2) continue;
+                var value = kv[1].Trim();
+                switch (kv[0].Trim())
+                {
+                    case "width":
+                        width = int.TryParse(value, out var w) ? w : null;
+                        break;
+                    case "height":
+                        height = int.TryParse(value, out var h) ? h : null;
+                        break;
+                    case "duration":
+                        duration = double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? d : null;
+                        break;
+                    case "r_frame_rate":
+                        var parts = value.Split('/');
+                        if (parts.Length == 2
+                            && double.TryParse(parts[0], NumberStyles.Any, CultureInfo.InvariantCulture, out var num)
+                            && double.TryParse(parts[1], NumberStyles.Any, CultureInfo.InvariantCulture, out var den)
+                            && den > 0)
+                        {
+                            fps = num / den;
+                        }
+                        break;
+                }
+            }
+
+            if (width == null || height == null)
+            {
+                return new VideoProbeResult(null, null, null, duration, string.IsNullOrWhiteSpace(stderr)
+                    ? "ffprobe non ha restituito la risoluzione del video (file non riconosciuto?)."
+                    : stderr.Trim());
+            }
+
+            return new VideoProbeResult(width, height, fps, duration, null);
+        }
+        catch (OperationCanceledException)
+        {
+            return new VideoProbeResult(null, null, null, null, null);
+        }
+        catch (Exception ex)
+        {
+            return new VideoProbeResult(null, null, null, null, ex.Message);
+        }
+    }
+
+    /// <summary>
     /// Codifica un breve campione (attorno al 30% della durata) con le impostazioni scelte
     /// e ne misura il bitrate risultante, per stimare la dimensione finale dell'intero file
     /// senza dover attendere la compressione completa.
@@ -241,3 +326,4 @@ public class FfmpegService
 public record CompressResult(int ExitCode, string StdErr);
 public record DurationResult(double? Seconds, string ErrorDetail);
 public record EstimateResult(long? Bytes, string ErrorDetail);
+public record VideoProbeResult(int? Width, int? Height, double? Fps, double? DurationSeconds, string? ErrorDetail);

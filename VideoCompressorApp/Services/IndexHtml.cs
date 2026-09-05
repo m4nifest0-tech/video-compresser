@@ -83,13 +83,14 @@ public static class IndexHtml
     background: var(--select-bg); color: var(--select-fg);
   }
   select option { background: var(--select-bg); color: var(--select-fg); }
-  button {
+  button, a.btn {
     padding: 8px 16px; border: 1px solid rgba(0,0,0,.12); border-radius: 8px;
     background: rgba(255,255,255,.6); color: var(--fg); cursor: pointer; font-size: 13px;
     transition: transform .08s ease, background .15s ease;
+    display: inline-block; text-decoration: none; box-sizing: border-box;
   }
-  button:hover:not(:disabled) { transform: translateY(-1px); }
-  button.primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; }
+  button:hover:not(:disabled), a.btn:hover { transform: translateY(-1px); }
+  button.primary, a.btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; }
   button.link { border: none; background: none; color: var(--accent); padding: 0; font-size: 12px; }
   button:disabled { opacity: .5; cursor: default; transform: none; }
   #dropzone {
@@ -111,8 +112,7 @@ public static class IndexHtml
   .status-In-corso { color: var(--accent); font-weight: bold; }
   #overallProgress { width: 100%; height: 18px; margin-bottom: 6px; }
   #statusLine { display: flex; justify-content: space-between; font-size: 12px; color: var(--sub); }
-  .actions button { font-size: 11px; padding: 4px 10px; margin-right: 4px; }
-  a.download { font-size: 12px; color: var(--accent); }
+  .actions button, .actions a.btn { font-size: 11px; padding: 4px 10px; margin-right: 4px; }
   .gpu-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
   .gpu-card { border: 1px solid var(--row-border); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; background: rgba(255,255,255,.25); }
   .gpu-card:last-child { margin-bottom: 0; }
@@ -143,7 +143,7 @@ public static class IndexHtml
         radial-gradient(700px circle at 50% 50%, rgba(16,185,129,.18), transparent 60%);
     }
     html:not([data-theme="light"]) body::before { opacity: .07; }
-    html:not([data-theme="light"]) button:not(.primary) { background: rgba(255,255,255,.08); }
+    html:not([data-theme="light"]) button:not(.primary), html:not([data-theme="light"]) a.btn:not(.primary) { background: rgba(255,255,255,.08); }
     html:not([data-theme="light"]) .gpu-card { background: rgba(255,255,255,.03); }
   }
   :root[data-theme="dark"] {
@@ -163,7 +163,7 @@ public static class IndexHtml
       radial-gradient(700px circle at 50% 50%, rgba(16,185,129,.18), transparent 60%);
   }
   html[data-theme="dark"] body::before { opacity: .07; }
-  html[data-theme="dark"] button:not(.primary) { background: rgba(255,255,255,.08); }
+  html[data-theme="dark"] button:not(.primary), html[data-theme="dark"] a.btn:not(.primary) { background: rgba(255,255,255,.08); }
   html[data-theme="dark"] .gpu-card { background: rgba(255,255,255,.03); }
 
   [data-accent="green"] { --accent: #16a34a; --accent2: #0d9488; }
@@ -218,6 +218,7 @@ public static class IndexHtml
       </div>
       <div>
         <button id="applySettings">Applica impostazioni</button>
+        <button id="optimizeBtn" title="Analizza risoluzione, fps e durata dei file in coda e propone codec/livello adatti">Calcola valori ottimali</button>
       </div>
     </div>
     <div class="row">
@@ -295,7 +296,7 @@ function renderItems(items) {
       <td>${escapeHtml(it.estimatedSizeText)}</td>
       <td>${escapeHtml(it.resultSizeText)}</td>
       <td class="actions">
-        ${it.hasResult ? `<a class="download" href="/api/download/${it.id}">Scarica</a>` : ''}
+        ${it.hasResult ? `<a class="btn" href="/api/download/${it.id}">Scarica</a>` : ''}
         <button onclick="removeItem('${it.id}')">Rimuovi</button>
       </td>
     </tr>`).join('');
@@ -333,12 +334,20 @@ function renderGpu(gpus) {
     // consumo mostrava solo "-" anche quando l'unica informazione mancante era il consumo live.
     const powerText = (g.powerDrawW == null && g.powerLimitW == null) ? '-'
       : `${g.powerDrawW != null ? g.powerDrawW.toFixed(0) + ' W' : '-'}${g.powerLimitW != null ? ' / ' + g.powerLimitW.toFixed(0) + ' W' : ''}`;
+    // utilization.gpu riflette il motore 3D/compute generale, non il blocco NVENC/NVDEC dedicato
+    // che questa app usa per la codifica: utilizzo/fps dell'encoder sono l'indicatore giusto per
+    // capire se la GPU sta davvero lavorando su una compressione.
+    const encoderFpsText = (g.encoderSessionCount && g.encoderSessionCount > 0)
+      ? `${(g.encoderAvgFps ?? 0).toFixed(0)} fps &middot; ${g.encoderSessionCount.toFixed(0)} sessione/i` : '-';
     return `
       <div class="gpu-card">
         <div class="gpu-name">${escapeHtml(g.name)}</div>
         <div class="gpu-metrics">
           ${metric('&#127777;&#65039;', 'Temperatura', g.temperatureC != null ? g.temperatureC.toFixed(0) + ' &deg;C' : '-', g.temperatureC != null ? (g.temperatureC / 90 * 100) : null)}
           ${metric('&#9881;&#65039;', 'Utilizzo GPU', g.utilizationGpuPercent != null ? g.utilizationGpuPercent.toFixed(0) + ' %' : '-', g.utilizationGpuPercent)}
+          ${metric('&#127909;', 'Encoder (NVENC)', g.encoderUtilizationPercent != null ? g.encoderUtilizationPercent.toFixed(0) + ' %' : '-', g.encoderUtilizationPercent)}
+          ${metric('&#127916;', 'FPS encoder', encoderFpsText, null)}
+          ${metric('&#128260;', 'Decoder (NVDEC)', g.decoderUtilizationPercent != null ? g.decoderUtilizationPercent.toFixed(0) + ' %' : '-', g.decoderUtilizationPercent)}
           ${metric('&#128202;', 'Utilizzo memoria', g.utilizationMemPercent != null ? g.utilizationMemPercent.toFixed(0) + ' %' : '-', g.utilizationMemPercent)}
           ${metric('&#128190;', 'Memoria', memText, memPercent)}
           ${metric('&#127744;', 'Ventola', g.fanSpeedPercent != null ? g.fanSpeedPercent.toFixed(0) + ' %' : '-', g.fanSpeedPercent)}
@@ -370,6 +379,7 @@ async function refresh() {
   document.getElementById('estimateBtn').disabled = state.busy;
   document.getElementById('startBtn').disabled = state.busy;
   document.getElementById('cancelBtn').disabled = !state.busy;
+  document.getElementById('optimizeBtn').disabled = state.busy || state.optimizing;
   renderItems(state.items);
 }
 
@@ -399,6 +409,28 @@ document.getElementById('applySettings').addEventListener('click', async () => {
   try {
     await api('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   } catch (e) { alert(e.message); }
+  refresh();
+});
+
+document.getElementById('optimizeBtn').addEventListener('click', async () => {
+  try {
+    await api('/api/optimize', { method: 'POST' });
+  } catch (e) { alert(e.message); return; }
+
+  // L'analisi (una chiamata ffprobe per file in coda) gira lato server in background: si
+  // aspetta che "optimizing" torni false prima di ricaricare i menu codec/livello, che di
+  // norma non vengono ripopolati ad ogni refresh per non sovrascrivere una modifica manuale
+  // dell'utente ancora in corso - qui pero' il valore e' appena cambiato in risposta a
+  // questa stessa azione, quindi va recepito esplicitamente.
+  for (let i = 0; i < 40; i++) {
+    await new Promise(r => setTimeout(r, 300));
+    const state = await api('/api/state').catch(() => null);
+    if (state && !state.optimizing) {
+      fillSelect(document.getElementById('codec'), state.codecs, 'value', 'label', state.codecValue);
+      fillSelect(document.getElementById('level'), state.levels, 'cq', 'label', state.levelCq);
+      break;
+    }
+  }
   refresh();
 });
 

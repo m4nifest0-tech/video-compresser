@@ -26,7 +26,7 @@ public partial class MainWindow : Window
         string Status, double ProgressPercent, string ProgressText, string EstimatedSizeText, string ResultSizeText,
         bool HasResult, bool HasErrorLog, string? ErrorDetail);
 
-    public sealed record StateDto(bool Busy, string StatusText, string EtaText, string EstimateSummaryText,
+    public sealed record StateDto(bool Busy, bool Optimizing, string StatusText, string EtaText, string EstimateSummaryText,
         double OverallProgressValue, double OverallProgressMax, string DestDir, string CodecValue, int LevelCq,
         bool PreserveStructure, bool SkipExisting, bool DeleteSource,
         IReadOnlyList<CodecOption> Codecs, IReadOnlyList<LevelOption> Levels, IReadOnlyList<ItemDto> Items);
@@ -76,6 +76,7 @@ public partial class MainWindow : Window
     public static MainWindow? Current { get; private set; }
 
     public bool IsBusy => _cts != null;
+    public bool IsOptimizing { get; private set; }
 
     public MainWindow()
     {
@@ -153,6 +154,9 @@ public partial class MainWindow : Window
         var parts = new List<string> { g.Name };
         if (g.TemperatureC is { } t) parts.Add($"{t:0} °C");
         if (g.UtilizationGpuPercent is { } u) parts.Add($"GPU {u:0}%");
+        if (g.EncoderUtilizationPercent is { } eu) parts.Add($"Encoder {eu:0}%");
+        if (g.EncoderSessionCount is > 0) parts.Add($"{g.EncoderAvgFps ?? 0:0} fps enc");
+        if (g.DecoderUtilizationPercent is { } du) parts.Add($"Decoder {du:0}%");
         if (g.MemoryUsedMb is { } mu && g.MemoryTotalMb is { } mt) parts.Add($"Mem {mu:0}/{mt:0} MB");
         if (g.PowerDrawW is { } pw) parts.Add(g.PowerLimitW is { } pl ? $"{pw:0}/{pl:0} W" : $"{pw:0} W");
         else if (g.PowerLimitW is { } plOnly) parts.Add($"-/{plOnly:0} W");
@@ -564,6 +568,110 @@ public partial class MainWindow : Window
         return null;
     }
 
+    public string? ValidateForOptimize()
+    {
+        if (_items.Count == 0) return "Aggiungi almeno un file o una cartella.";
+        if (!FfmpegService.IsFfmpegAvailable()) return "ffmpeg non e stato trovato nel PATH. Installalo e riprova.";
+        return null;
+    }
+
+    private async void Optimize_Click(object sender, RoutedEventArgs e)
+    {
+        var error = ValidateForOptimize();
+        if (error != null)
+        {
+            MessageBox.Show(error, "Impossibile calcolare i valori ottimali", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        await RunOptimizeAsync();
+    }
+
+    public async Task RunOptimizeAsync()
+    {
+        IsOptimizing = true;
+        OptimizeButton.IsEnabled = false;
+        StatusLabel.Text = "Analisi dei file in corso...";
+
+        int maxWidth = 0, maxHeight = 0;
+        double maxFps = 0, totalDurationSeconds = 0;
+        int probed = 0;
+
+        try
+        {
+            foreach (var item in _items.ToList())
+            {
+                var probe = await _ffmpeg.ProbeAsync(item.SourcePath, CancellationToken.None);
+                if (probe.Width is { } w && probe.Height is { } h)
+                {
+                    if ((long)w * h > (long)maxWidth * maxHeight) { maxWidth = w; maxHeight = h; }
+                    probed++;
+                }
+                if (probe.Fps is { } f && f > maxFps) maxFps = f;
+                if (probe.DurationSeconds is { } d) totalDurationSeconds += d;
+            }
+        }
+        finally
+        {
+            IsOptimizing = false;
+            OptimizeButton.IsEnabled = true;
+        }
+
+        if (probed == 0)
+        {
+            StatusLabel.Text = "Impossibile analizzare i file selezionati (formato non riconosciuto da ffprobe?).";
+            return;
+        }
+
+        var (codec, level, reason) = ComputeOptimalSettings(maxWidth, maxHeight, maxFps, totalDurationSeconds);
+        CodecCombo.SelectedItem = codec;
+        LevelCombo.SelectedItem = level;
+        StatusLabel.Text = $"Impostazioni ottimali applicate: {codec.Label} · {level.Label}. {reason}";
+    }
+
+    /// <summary>
+    /// Regola empirica (non una formula scientifica: qualita' percepita vs dimensione e' in parte
+    /// soggettiva) basata su pratiche comuni di codifica:
+    /// - Codec: HEVC comprime meglio a parita' di qualita' ma AV1 non viene proposto automaticamente
+    ///   (il supporto hardware varia troppo tra schede, meglio una scelta manuale consapevole).
+    /// - Livello: si parte da una base per risoluzione (il dettaglio fine si nota di piu' a
+    ///   risoluzioni piu' basse), poi si corregge per fps alti (piu' movimento da preservare,
+    ///   serve piu' qualita') e per durata totale del lotto (batch molto lunghi beneficiano di piu'
+    ///   compressione per contenere la dimensione complessiva).
+    /// Il risultato viene arrotondato al livello disponibile piu' vicino tra i 5 in elenco.
+    /// </summary>
+    public static (CodecOption Codec, LevelOption Level, string Reason) ComputeOptimalSettings(
+        int maxWidth, int maxHeight, double maxFps, double totalDurationSeconds)
+    {
+        int maxDim = Math.Max(maxWidth, maxHeight);
+        var codec = maxDim > 1280 ? Codecs[1] : Codecs[0]; // HEVC oltre il 720p, altrimenti H.264
+
+        double cq = maxDim switch
+        {
+            <= 640 => 30,
+            <= 1280 => 28,
+            <= 1920 => 25,
+            <= 2560 => 23,
+            _ => 21,
+        };
+        if (maxFps >= 50) cq -= 3;
+        if (totalDurationSeconds >= 3600) cq += 3;
+        else if (totalDurationSeconds is > 0 and <= 120) cq -= 2;
+
+        var level = Levels.OrderBy(l => Math.Abs(l.Cq - cq)).First();
+
+        var reason = $"Basato su risoluzione max {maxWidth}x{maxHeight}, {maxFps:0} fps, durata totale {FormatDurationPlain(totalDurationSeconds)}.";
+        return (codec, level, reason);
+    }
+
+    private static string FormatDurationPlain(double seconds)
+    {
+        var ts = TimeSpan.FromSeconds(seconds);
+        if (ts.TotalHours >= 1) return $"{(int)ts.TotalHours}h {ts.Minutes}m";
+        if (ts.TotalMinutes >= 1) return $"{(int)ts.TotalMinutes}m {ts.Seconds}s";
+        return $"{Math.Max(0, ts.Seconds)}s";
+    }
+
     private async void Estimate_Click(object sender, RoutedEventArgs e)
     {
         var error = ValidateForEstimate();
@@ -840,7 +948,7 @@ public partial class MainWindow : Window
             i.Status, i.ProgressPercent, i.ProgressText, i.EstimatedSizeText, i.ResultSizeText, i.HasResult,
             i.HasErrorLog, i.ErrorDetail)).ToList();
 
-        return new StateDto(IsBusy, StatusLabel.Text, EtaLabel.Text, EstimateSummaryLabel.Text,
+        return new StateDto(IsBusy, IsOptimizing, StatusLabel.Text, EtaLabel.Text, EstimateSummaryLabel.Text,
             OverallProgress.Value, OverallProgress.Maximum, DestTextBox.Text, codec.Value, level.Cq,
             PreserveStructureCheck.IsChecked == true, SkipExistingCheck.IsChecked == true,
             DeleteSourceCheck.IsChecked == true, Codecs, Levels, items);
@@ -867,6 +975,7 @@ public partial class MainWindow : Window
         DeleteSourceCheck.IsEnabled = !busy;
         EstimateButton.IsEnabled = !busy;
         StartButton.IsEnabled = !busy;
+        OptimizeButton.IsEnabled = !busy;
         CancelButton.IsEnabled = busy;
     }
 }
