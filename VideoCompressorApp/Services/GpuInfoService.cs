@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 namespace VideoCompressor.Services;
 
 public record GpuStat(string Name, double? TemperatureC, double? UtilizationGpuPercent, double? UtilizationMemPercent,
-    double? MemoryUsedMb, double? MemoryTotalMb, double? PowerDrawW, double? PowerLimitW);
+    double? MemoryUsedMb, double? MemoryTotalMb, double? PowerDrawW, double? PowerLimitW, double? FanSpeedPercent);
 
 /// <summary>
 /// Legge le metriche della GPU NVIDIA tramite nvidia-smi (incluso con i driver NVIDIA, nessuna
@@ -52,7 +52,7 @@ public static class GpuInfoService
                 CreateNoWindow = true,
             };
             psi.ArgumentList.Add(
-                "--query-gpu=name,temperature.gpu,utilization.gpu,utilization.memory,memory.used,memory.total,power.draw,power.limit");
+                "--query-gpu=name,temperature.gpu,utilization.gpu,utilization.memory,memory.used,memory.total,power.draw,power.limit,fan.speed");
             psi.ArgumentList.Add("--format=csv,noheader,nounits");
 
             using var proc = Process.Start(psi);
@@ -70,7 +70,7 @@ public static class GpuInfoService
             foreach (var rawLine in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             {
                 var parts = rawLine.Split(',').Select(p => p.Trim()).ToArray();
-                if (parts.Length < 8) continue;
+                if (parts.Length < 9) continue;
 
                 stats.Add(new GpuStat(
                     parts[0],
@@ -80,7 +80,8 @@ public static class GpuInfoService
                     ParseDouble(parts[4]),
                     ParseDouble(parts[5]),
                     ParseDouble(parts[6]),
-                    ParseDouble(parts[7])));
+                    ParseDouble(parts[7]),
+                    ParseDouble(parts[8])));
             }
             return stats;
         }

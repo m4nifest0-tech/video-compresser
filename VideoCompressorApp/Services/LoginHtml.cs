@@ -36,11 +36,22 @@ public static class LoginHtml
     font-family: -apple-system, "Segoe UI", Arial, sans-serif; color: var(--fg);
     background: var(--bg);
     background-image:
-      radial-gradient(700px circle at 15% 20%, rgba(124,58,237,.28), transparent 60%),
-      radial-gradient(700px circle at 85% 80%, rgba(37,99,235,.26), transparent 60%);
+      radial-gradient(700px circle at 12% 15%, rgba(124,58,237,.30), transparent 60%),
+      radial-gradient(650px circle at 88% 20%, rgba(37,99,235,.26), transparent 60%),
+      radial-gradient(550px circle at 85% 90%, rgba(219,39,119,.18), transparent 60%),
+      radial-gradient(500px circle at 10% 88%, rgba(245,158,11,.15), transparent 60%);
     background-attachment: fixed;
   }
+  /* Texture di grana sottile sopra lo sfondo sfumato, visibile attraverso il vetro smerigliato
+     della card: da' un effetto piu' "materiale" invece di un piatto colore. */
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: .05;
+    mix-blend-mode: overlay;
+  }
   .card {
+    position: relative; z-index: 1;
     width: 320px;
     background: var(--card-bg);
     -webkit-backdrop-filter: blur(20px) saturate(160%);
@@ -80,7 +91,9 @@ public static class LoginHtml
       --input-bg: rgba(255,255,255,.06); --input-border: rgba(255,255,255,.16);
       --error-bg: rgba(192,57,43,.18); --error-border: rgba(192,57,43,.4); --error-fg: #f28b82;
     }
+    html:not([data-theme="light"]) body::before { opacity: .07; }
   }
+  html[data-theme="dark"] body::before { opacity: .07; }
   :root[data-theme="dark"] {
     --bg: #131417; --fg: #eee; --sub: #999;
     --card-bg: rgba(35,36,42,.6); --card-border: rgba(255,255,255,.08);

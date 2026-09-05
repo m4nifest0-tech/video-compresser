@@ -45,12 +45,22 @@ public static class IndexHtml
     font-family: -apple-system, "Segoe UI", Arial, sans-serif; margin: 0; padding: 20px; color: var(--fg);
     background: var(--bg);
     background-image:
-      radial-gradient(600px circle at 8% 8%, rgba(124,58,237,.25), transparent 60%),
-      radial-gradient(600px circle at 92% 18%, rgba(37,99,235,.22), transparent 60%),
-      radial-gradient(700px circle at 50% 100%, rgba(16,185,129,.16), transparent 60%);
+      radial-gradient(650px circle at 6% 6%, rgba(124,58,237,.28), transparent 60%),
+      radial-gradient(600px circle at 94% 12%, rgba(37,99,235,.24), transparent 60%),
+      radial-gradient(550px circle at 85% 92%, rgba(219,39,119,.16), transparent 60%),
+      radial-gradient(500px circle at 12% 88%, rgba(245,158,11,.14), transparent 60%),
+      radial-gradient(700px circle at 50% 50%, rgba(16,185,129,.14), transparent 60%);
     background-attachment: fixed;
   }
-  .wrap { max-width: 980px; margin: 0 auto; }
+  /* Texture di grana sottile sopra lo sfondo sfumato: attraverso il vetro smerigliato delle card
+     (backdrop-filter blur) da' un effetto piu' "materiale"/fotografico invece di un piatto colore. */
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: .05;
+    mix-blend-mode: overlay;
+  }
+  .wrap { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; }
   .topbar { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
   h1 { font-size: 20px; margin: 0 0 4px; letter-spacing: -.02em; }
   .sub { color: var(--sub); font-size: 12px; }
@@ -126,10 +136,13 @@ public static class IndexHtml
     }
     html:not([data-theme="light"]) body {
       background-image:
-        radial-gradient(600px circle at 8% 8%, rgba(124,58,237,.30), transparent 60%),
-        radial-gradient(600px circle at 92% 18%, rgba(37,99,235,.28), transparent 60%),
-        radial-gradient(700px circle at 50% 100%, rgba(16,185,129,.18), transparent 60%);
+        radial-gradient(650px circle at 6% 6%, rgba(124,58,237,.32), transparent 60%),
+        radial-gradient(600px circle at 94% 12%, rgba(37,99,235,.28), transparent 60%),
+        radial-gradient(550px circle at 85% 92%, rgba(219,39,119,.20), transparent 60%),
+        radial-gradient(500px circle at 12% 88%, rgba(245,158,11,.16), transparent 60%),
+        radial-gradient(700px circle at 50% 50%, rgba(16,185,129,.18), transparent 60%);
     }
+    html:not([data-theme="light"]) body::before { opacity: .07; }
     html:not([data-theme="light"]) button:not(.primary) { background: rgba(255,255,255,.08); }
     html:not([data-theme="light"]) .gpu-card { background: rgba(255,255,255,.03); }
   }
@@ -143,10 +156,13 @@ public static class IndexHtml
   }
   html[data-theme="dark"] body {
     background-image:
-      radial-gradient(600px circle at 8% 8%, rgba(124,58,237,.30), transparent 60%),
-      radial-gradient(600px circle at 92% 18%, rgba(37,99,235,.28), transparent 60%),
-      radial-gradient(700px circle at 50% 100%, rgba(16,185,129,.18), transparent 60%);
+      radial-gradient(650px circle at 6% 6%, rgba(124,58,237,.32), transparent 60%),
+      radial-gradient(600px circle at 94% 12%, rgba(37,99,235,.28), transparent 60%),
+      radial-gradient(550px circle at 85% 92%, rgba(219,39,119,.20), transparent 60%),
+      radial-gradient(500px circle at 12% 88%, rgba(245,158,11,.16), transparent 60%),
+      radial-gradient(700px circle at 50% 50%, rgba(16,185,129,.18), transparent 60%);
   }
+  html[data-theme="dark"] body::before { opacity: .07; }
   html[data-theme="dark"] button:not(.primary) { background: rgba(255,255,255,.08); }
   html[data-theme="dark"] .gpu-card { background: rgba(255,255,255,.03); }
 
@@ -316,7 +332,7 @@ function renderGpu(gpus) {
     // nvidia-smi ma riportano comunque il limite di potenza (power.limit): scartarlo insieme al
     // consumo mostrava solo "-" anche quando l'unica informazione mancante era il consumo live.
     const powerText = (g.powerDrawW == null && g.powerLimitW == null) ? '-'
-      : `${g.powerDrawW != null ? g.powerDrawW.toFixed(0) + ' W' : '-'}${g.powerLimitW != null ? ' / ' + g.powerLimitW.toFixed(0) + ' W limite' : ''}`;
+      : `${g.powerDrawW != null ? g.powerDrawW.toFixed(0) + ' W' : '-'}${g.powerLimitW != null ? ' / ' + g.powerLimitW.toFixed(0) + ' W' : ''}`;
     return `
       <div class="gpu-card">
         <div class="gpu-name">${escapeHtml(g.name)}</div>
@@ -325,6 +341,7 @@ function renderGpu(gpus) {
           ${metric('&#9881;&#65039;', 'Utilizzo GPU', g.utilizationGpuPercent != null ? g.utilizationGpuPercent.toFixed(0) + ' %' : '-', g.utilizationGpuPercent)}
           ${metric('&#128202;', 'Utilizzo memoria', g.utilizationMemPercent != null ? g.utilizationMemPercent.toFixed(0) + ' %' : '-', g.utilizationMemPercent)}
           ${metric('&#128190;', 'Memoria', memText, memPercent)}
+          ${metric('&#127744;', 'Ventola', g.fanSpeedPercent != null ? g.fanSpeedPercent.toFixed(0) + ' %' : '-', g.fanSpeedPercent)}
           ${metric('&#9889;', 'Potenza', powerText, null)}
         </div>
       </div>`;
