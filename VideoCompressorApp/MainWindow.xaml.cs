@@ -631,13 +631,18 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// Regola empirica (non una formula scientifica: qualita' percepita vs dimensione e' in parte
-    /// soggettiva) basata su pratiche comuni di codifica:
-    /// - Codec: HEVC comprime meglio a parita' di qualita' ma AV1 non viene proposto automaticamente
-    ///   (il supporto hardware varia troppo tra schede, meglio una scelta manuale consapevole).
-    /// - Livello: si parte da una base per risoluzione (il dettaglio fine si nota di piu' a
-    ///   risoluzioni piu' basse), poi si corregge per fps alti (piu' movimento da preservare,
-    ///   serve piu' qualita') e per durata totale del lotto (batch molto lunghi beneficiano di piu'
-    ///   compressione per contenere la dimensione complessiva).
+    /// soggettiva) orientata al RISPARMIO DI SPAZIO, l'obiettivo dichiarato di questa app - non alla
+    /// massima qualita' possibile:
+    /// - Codec: HEVC comprime meglio a parita' di qualita' ed e' quasi sempre la scelta giusta oltre
+    ///   il 720p; AV1 comprimerebbe ancora meglio ma non viene proposto automaticamente (il supporto
+    ///   hardware varia troppo tra schede, meglio un'attivazione manuale consapevole) - lo si segnala
+    ///   pero' nel messaggio quando la risoluzione lo renderebbe utile.
+    /// - Livello: al contrario di uno schema "massima qualita'", qui la compressione aumenta con la
+    ///   risoluzione anziche' diminuire, perche' e' li' che si concentra il risparmio assoluto in byte
+    ///   e perche' gli artefatti da compressione sono meno percepibili all'alta densita' di pixel del
+    ///   4K. La durata totale del lotto spinge verso ancora piu' compressione se molto lunga (contenere
+    ///   la dimensione complessiva); niente sconti di qualita' per fps alti o clip brevi, che
+    ///   andrebbero contro l'obiettivo di risparmiare spazio.
     /// Il risultato viene arrotondato al livello disponibile piu' vicino tra i 5 in elenco.
     /// </summary>
     public static (CodecOption Codec, LevelOption Level, string Reason) ComputeOptimalSettings(
@@ -648,19 +653,18 @@ public partial class MainWindow : Window
 
         double cq = maxDim switch
         {
-            <= 640 => 30,
-            <= 1280 => 28,
-            <= 1920 => 25,
-            <= 2560 => 23,
-            _ => 21,
+            <= 1920 => 32, // fino al Full HD: "Compressione alta" e' gia' un buon compromesso
+            <= 2560 => 35, // 1440p/2K: piu' byte in gioco, l'artefatto si nota meno alla stessa densita' di pixel
+            _ => 36,       // 4K e oltre: compressione massima, e' dove il risparmio assoluto e' piu' grande
         };
-        if (maxFps >= 50) cq -= 3;
-        if (totalDurationSeconds >= 3600) cq += 3;
-        else if (totalDurationSeconds is > 0 and <= 120) cq -= 2;
+        if (totalDurationSeconds >= 3600) cq += 2; // batch molto lunghi: ancora piu' compressione
 
         var level = Levels.OrderBy(l => Math.Abs(l.Cq - cq)).First();
 
-        var reason = $"Basato su risoluzione max {maxWidth}x{maxHeight}, {maxFps:0} fps, durata totale {FormatDurationPlain(totalDurationSeconds)}.";
+        var reason = $"Basato su risoluzione max {maxWidth}x{maxHeight}, {maxFps:0} fps, durata totale {FormatDurationPlain(totalDurationSeconds)}, orientato al risparmio di spazio.";
+        if (maxDim >= 2560)
+            reason += " Per risparmiare ulteriore spazio valuta AV1, se la tua GPU lo supporta (RTX serie 40+).";
+
         return (codec, level, reason);
     }
 

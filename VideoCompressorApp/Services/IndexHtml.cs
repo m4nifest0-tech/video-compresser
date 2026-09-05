@@ -23,7 +23,7 @@ public static class IndexHtml
 <style>
   :root {
     color-scheme: light dark;
-    --bg: #eef0f5;
+    --bg: #e9ede8;
     --fg: #1a1a1a;
     --sub: #666;
     --card-bg: rgba(255,255,255,.55);
@@ -45,11 +45,16 @@ public static class IndexHtml
     font-family: -apple-system, "Segoe UI", Arial, sans-serif; margin: 0; padding: 20px; color: var(--fg);
     background: var(--bg);
     background-image:
-      radial-gradient(650px circle at 6% 6%, rgba(124,58,237,.28), transparent 60%),
-      radial-gradient(600px circle at 94% 12%, rgba(37,99,235,.24), transparent 60%),
-      radial-gradient(550px circle at 85% 92%, rgba(219,39,119,.16), transparent 60%),
-      radial-gradient(500px circle at 12% 88%, rgba(245,158,11,.14), transparent 60%),
-      radial-gradient(700px circle at 50% 50%, rgba(16,185,129,.14), transparent 60%);
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%23153a24' fill-opacity='0.5'%3E%3Cpath d='M100,200 Q80,120 60,20 Q100,60 100,200 Z'/%3E%3Cpath d='M100,200 Q95,110 85,10 Q115,55 100,200 Z'/%3E%3Cpath d='M100,200 Q100,100 100,5 Q100,100 100,200 Z'/%3E%3Cpath d='M100,200 Q105,110 115,10 Q85,55 100,200 Z'/%3E%3Cpath d='M100,200 Q120,120 140,20 Q100,60 100,200 Z'/%3E%3C/g%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%23153a24' fill-opacity='0.4'%3E%3Cpath d='M100,200 Q80,130 65,40 Q100,70 100,200 Z'/%3E%3Cpath d='M100,200 Q100,110 100,15 Q100,110 100,200 Z'/%3E%3Cpath d='M100,200 Q120,130 135,40 Q100,70 100,200 Z'/%3E%3C/g%3E%3C/svg%3E"),
+      radial-gradient(650px circle at 6% 6%, rgba(21,94,60,.24), transparent 60%),
+      radial-gradient(600px circle at 94% 12%, rgba(6,95,70,.20), transparent 60%),
+      radial-gradient(550px circle at 85% 92%, rgba(63,98,18,.16), transparent 60%),
+      radial-gradient(500px circle at 12% 88%, rgba(20,83,45,.16), transparent 60%),
+      radial-gradient(700px circle at 50% 50%, rgba(45,90,39,.14), transparent 60%);
+    background-position: left -40px bottom -60px, right -60px bottom -80px, 0 0, 0 0, 0 0, 0 0, 0 0;
+    background-size: 340px 340px, 260px 260px, auto, auto, auto, auto, auto;
+    background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
     background-attachment: fixed;
   }
   /* Texture di grana sottile sopra lo sfondo sfumato: attraverso il vetro smerigliato delle card
@@ -60,6 +65,21 @@ public static class IndexHtml
     opacity: .05;
     mix-blend-mode: overlay;
   }
+  /* Pioggia sul "vetro": righe diagonali ripetute animate in verticale, come gocce che scivolano. */
+  body::after {
+    content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image: repeating-linear-gradient(
+      100deg,
+      transparent 0px, transparent 2px,
+      rgba(255,255,255,.09) 2px, rgba(255,255,255,.09) 3px,
+      transparent 3px, transparent 50px
+    );
+    background-size: 100% 50px;
+    opacity: .5;
+    animation: rainfall 1.1s linear infinite;
+  }
+  @keyframes rainfall { to { background-position: 0 50px; } }
+  html:not([data-theme="light"]) body::after { opacity: .7; }
   .wrap { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; }
   .topbar { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
   h1 { font-size: 20px; margin: 0 0 4px; letter-spacing: -.02em; }
@@ -91,7 +111,6 @@ public static class IndexHtml
   }
   button:hover:not(:disabled), a.btn:hover { transform: translateY(-1px); }
   button.primary, a.btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; }
-  button.link { border: none; background: none; color: var(--accent); padding: 0; font-size: 12px; }
   button:disabled { opacity: .5; cursor: default; transform: none; }
   #dropzone {
     border: 2px dashed rgba(0,0,0,.2); border-radius: 12px; padding: 26px; text-align: center;
@@ -103,7 +122,9 @@ public static class IndexHtml
   #uploadProgressLabel { font-size: 12px; color: var(--sub); display: block; margin-top: 4px; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
   th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--row-border); }
-  progress { width: 100%; height: 14px; }
+  /* non sono elementi interattivi: pointer-events:none impedisce qualunque stato hover nativo
+     del browser (alcuni motori applicano un lieve highlight/cursore ai controlli <progress>) */
+  progress { width: 100%; height: 14px; pointer-events: none; }
   progress::-webkit-progress-bar { background: var(--track); border-radius: 7px; }
   progress::-webkit-progress-value { background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 7px; }
   progress::-moz-progress-bar { background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 7px; }
@@ -127,7 +148,7 @@ public static class IndexHtml
   .gpu-empty { font-size: 12px; color: var(--sub); }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #131417; --fg: #eee; --sub: #999;
+      --bg: #0d1310; --fg: #eee; --sub: #999;
       --card-bg: rgba(35,36,42,.55); --card-border: rgba(255,255,255,.08);
       --card-shadow: 0 8px 32px rgba(0,0,0,.35);
       --input-bg: rgba(255,255,255,.06); --input-border: rgba(255,255,255,.14);
@@ -136,18 +157,20 @@ public static class IndexHtml
     }
     html:not([data-theme="light"]) body {
       background-image:
-        radial-gradient(650px circle at 6% 6%, rgba(124,58,237,.32), transparent 60%),
-        radial-gradient(600px circle at 94% 12%, rgba(37,99,235,.28), transparent 60%),
-        radial-gradient(550px circle at 85% 92%, rgba(219,39,119,.20), transparent 60%),
-        radial-gradient(500px circle at 12% 88%, rgba(245,158,11,.16), transparent 60%),
-        radial-gradient(700px circle at 50% 50%, rgba(16,185,129,.18), transparent 60%);
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%23153a24' fill-opacity='0.5'%3E%3Cpath d='M100,200 Q80,120 60,20 Q100,60 100,200 Z'/%3E%3Cpath d='M100,200 Q95,110 85,10 Q115,55 100,200 Z'/%3E%3Cpath d='M100,200 Q100,100 100,5 Q100,100 100,200 Z'/%3E%3Cpath d='M100,200 Q105,110 115,10 Q85,55 100,200 Z'/%3E%3Cpath d='M100,200 Q120,120 140,20 Q100,60 100,200 Z'/%3E%3C/g%3E%3C/svg%3E"),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%23153a24' fill-opacity='0.4'%3E%3Cpath d='M100,200 Q80,130 65,40 Q100,70 100,200 Z'/%3E%3Cpath d='M100,200 Q100,110 100,15 Q100,110 100,200 Z'/%3E%3Cpath d='M100,200 Q120,130 135,40 Q100,70 100,200 Z'/%3E%3C/g%3E%3C/svg%3E"),
+        radial-gradient(650px circle at 6% 6%, rgba(21,94,60,.36), transparent 60%),
+        radial-gradient(600px circle at 94% 12%, rgba(6,95,70,.30), transparent 60%),
+        radial-gradient(550px circle at 85% 92%, rgba(63,98,18,.22), transparent 60%),
+        radial-gradient(500px circle at 12% 88%, rgba(20,83,45,.24), transparent 60%),
+        radial-gradient(700px circle at 50% 50%, rgba(45,90,39,.20), transparent 60%);
     }
     html:not([data-theme="light"]) body::before { opacity: .07; }
     html:not([data-theme="light"]) button:not(.primary), html:not([data-theme="light"]) a.btn:not(.primary) { background: rgba(255,255,255,.08); }
     html:not([data-theme="light"]) .gpu-card { background: rgba(255,255,255,.03); }
   }
   :root[data-theme="dark"] {
-    --bg: #131417; --fg: #eee; --sub: #999;
+    --bg: #0d1310; --fg: #eee; --sub: #999;
     --card-bg: rgba(35,36,42,.55); --card-border: rgba(255,255,255,.08);
     --card-shadow: 0 8px 32px rgba(0,0,0,.35);
     --input-bg: rgba(255,255,255,.06); --input-border: rgba(255,255,255,.14);
@@ -156,13 +179,16 @@ public static class IndexHtml
   }
   html[data-theme="dark"] body {
     background-image:
-      radial-gradient(650px circle at 6% 6%, rgba(124,58,237,.32), transparent 60%),
-      radial-gradient(600px circle at 94% 12%, rgba(37,99,235,.28), transparent 60%),
-      radial-gradient(550px circle at 85% 92%, rgba(219,39,119,.20), transparent 60%),
-      radial-gradient(500px circle at 12% 88%, rgba(245,158,11,.16), transparent 60%),
-      radial-gradient(700px circle at 50% 50%, rgba(16,185,129,.18), transparent 60%);
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%23153a24' fill-opacity='0.5'%3E%3Cpath d='M100,200 Q80,120 60,20 Q100,60 100,200 Z'/%3E%3Cpath d='M100,200 Q95,110 85,10 Q115,55 100,200 Z'/%3E%3Cpath d='M100,200 Q100,100 100,5 Q100,100 100,200 Z'/%3E%3Cpath d='M100,200 Q105,110 115,10 Q85,55 100,200 Z'/%3E%3Cpath d='M100,200 Q120,120 140,20 Q100,60 100,200 Z'/%3E%3C/g%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%23153a24' fill-opacity='0.4'%3E%3Cpath d='M100,200 Q80,130 65,40 Q100,70 100,200 Z'/%3E%3Cpath d='M100,200 Q100,110 100,15 Q100,110 100,200 Z'/%3E%3Cpath d='M100,200 Q120,130 135,40 Q100,70 100,200 Z'/%3E%3C/g%3E%3C/svg%3E"),
+      radial-gradient(650px circle at 6% 6%, rgba(21,94,60,.36), transparent 60%),
+      radial-gradient(600px circle at 94% 12%, rgba(6,95,70,.30), transparent 60%),
+      radial-gradient(550px circle at 85% 92%, rgba(63,98,18,.22), transparent 60%),
+      radial-gradient(500px circle at 12% 88%, rgba(20,83,45,.24), transparent 60%),
+      radial-gradient(700px circle at 50% 50%, rgba(45,90,39,.20), transparent 60%);
   }
   html[data-theme="dark"] body::before { opacity: .07; }
+  html[data-theme="dark"] body::after { opacity: .7; }
   html[data-theme="dark"] button:not(.primary), html[data-theme="dark"] a.btn:not(.primary) { background: rgba(255,255,255,.08); }
   html[data-theme="dark"] .gpu-card { background: rgba(255,255,255,.03); }
 
@@ -171,7 +197,7 @@ public static class IndexHtml
   [data-accent="orange"] { --accent: #ea580c; --accent2: #d97706; }
 
   .theme-controls { display: flex; align-items: center; gap: 8px; }
-  .theme-controls select { font-size: 12px; padding: 5px 8px; }
+  .theme-controls select, .theme-controls button { font-size: 12px; padding: 5px 10px; }
 </style>
 </head>
 <body>
@@ -193,7 +219,7 @@ public static class IndexHtml
         <option value="purple">Viola</option>
         <option value="orange">Arancione</option>
       </select>
-      <button class="link" id="logoutBtn">Esci</button>
+      <button id="logoutBtn">Esci</button>
     </div>
   </div>
 
