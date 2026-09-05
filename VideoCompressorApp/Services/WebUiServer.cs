@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
 using System.Windows;
@@ -115,6 +116,24 @@ public class WebUiServer
         app.MapGet("/api/state", () => Dispatch(() => Results.Json(MainWindow.Current!.GetState())));
 
         app.MapGet("/api/gpu", () => Results.Json(GpuInfoService.GetStats()));
+
+        // Endpoint diagnostico: legge e scarta il corpo della richiesta senza mai scrivere su disco,
+        // cosi' da misurare la velocita' di rete pura (Client -> Kestrel) isolata dalla velocita' del
+        // disco di destinazione. Utile per capire se un upload lento e' un problema di rete o di I/O.
+        // Uso: curl -X POST --data-binary @video.mp4 http://host:porta/api/diag/throughput -w "%{speed_upload} B/s"
+        app.MapPost("/api/diag/throughput", async (HttpRequest request) =>
+        {
+            var sw = Stopwatch.StartNew();
+            var buffer = new byte[1024 * 1024];
+            long total = 0;
+            int read;
+            while ((read = await request.Body.ReadAsync(buffer)) > 0) total += read;
+            sw.Stop();
+
+            double seconds = sw.Elapsed.TotalSeconds;
+            double mbPerSec = seconds > 0 ? total / (1024.0 * 1024.0) / seconds : 0;
+            return Results.Json(new { bytes = total, seconds, mbPerSec });
+        });
 
         app.MapPost("/api/estimate", () => Dispatch(() =>
         {
