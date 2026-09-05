@@ -9,6 +9,16 @@ public static class LoginHtml
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Compressore Video - Accesso</title>
+<script>
+  (function() {
+    try {
+      var theme = localStorage.getItem('vc_theme');
+      var accent = localStorage.getItem('vc_accent');
+      if (theme && theme !== 'system') document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.setAttribute('data-accent', accent || 'blue');
+    } catch {}
+  })();
+</script>
 <style>
   :root {
     color-scheme: light dark;
@@ -63,7 +73,7 @@ public static class LoginHtml
   }
   .error.show { display: block; }
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
       --bg: #131417; --fg: #eee; --sub: #999;
       --card-bg: rgba(35,36,42,.6); --card-border: rgba(255,255,255,.08);
       --card-shadow: 0 8px 32px rgba(0,0,0,.4);
@@ -71,6 +81,17 @@ public static class LoginHtml
       --error-bg: rgba(192,57,43,.18); --error-border: rgba(192,57,43,.4); --error-fg: #f28b82;
     }
   }
+  :root[data-theme="dark"] {
+    --bg: #131417; --fg: #eee; --sub: #999;
+    --card-bg: rgba(35,36,42,.6); --card-border: rgba(255,255,255,.08);
+    --card-shadow: 0 8px 32px rgba(0,0,0,.4);
+    --input-bg: rgba(255,255,255,.06); --input-border: rgba(255,255,255,.16);
+    --error-bg: rgba(192,57,43,.18); --error-border: rgba(192,57,43,.4); --error-fg: #f28b82;
+  }
+
+  [data-accent="green"] { --accent: #16a34a; --accent2: #0d9488; }
+  [data-accent="purple"] { --accent: #7c3aed; --accent2: #db2777; }
+  [data-accent="orange"] { --accent: #ea580c; --accent2: #d97706; }
 </style>
 </head>
 <body>

@@ -9,6 +9,17 @@ public static class IndexHtml
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Compressore Video - Accesso remoto</title>
+<script>
+  // Applicato subito, prima del CSS/paint: evita un lampo con il tema sbagliato al caricamento.
+  (function() {
+    try {
+      var theme = localStorage.getItem('vc_theme');
+      var accent = localStorage.getItem('vc_accent');
+      if (theme && theme !== 'system') document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.setAttribute('data-accent', accent || 'blue');
+    } catch {}
+  })();
+</script>
 <style>
   :root {
     color-scheme: light dark;
@@ -105,7 +116,7 @@ public static class IndexHtml
   .meter.hot > div { background: #c0392b; }
   .gpu-empty { font-size: 12px; color: var(--sub); }
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
       --bg: #131417; --fg: #eee; --sub: #999;
       --card-bg: rgba(35,36,42,.55); --card-border: rgba(255,255,255,.08);
       --card-shadow: 0 8px 32px rgba(0,0,0,.35);
@@ -113,15 +124,38 @@ public static class IndexHtml
       --row-border: rgba(255,255,255,.08); --track: rgba(255,255,255,.1);
       --select-bg: #26272b; --select-fg: #eee;
     }
-    body {
+    html:not([data-theme="light"]) body {
       background-image:
         radial-gradient(600px circle at 8% 8%, rgba(124,58,237,.30), transparent 60%),
         radial-gradient(600px circle at 92% 18%, rgba(37,99,235,.28), transparent 60%),
         radial-gradient(700px circle at 50% 100%, rgba(16,185,129,.18), transparent 60%);
     }
-    button { background: rgba(255,255,255,.08); }
-    .gpu-card { background: rgba(255,255,255,.03); }
+    html:not([data-theme="light"]) button { background: rgba(255,255,255,.08); }
+    html:not([data-theme="light"]) .gpu-card { background: rgba(255,255,255,.03); }
   }
+  :root[data-theme="dark"] {
+    --bg: #131417; --fg: #eee; --sub: #999;
+    --card-bg: rgba(35,36,42,.55); --card-border: rgba(255,255,255,.08);
+    --card-shadow: 0 8px 32px rgba(0,0,0,.35);
+    --input-bg: rgba(255,255,255,.06); --input-border: rgba(255,255,255,.14);
+    --row-border: rgba(255,255,255,.08); --track: rgba(255,255,255,.1);
+    --select-bg: #26272b; --select-fg: #eee;
+  }
+  html[data-theme="dark"] body {
+    background-image:
+      radial-gradient(600px circle at 8% 8%, rgba(124,58,237,.30), transparent 60%),
+      radial-gradient(600px circle at 92% 18%, rgba(37,99,235,.28), transparent 60%),
+      radial-gradient(700px circle at 50% 100%, rgba(16,185,129,.18), transparent 60%);
+  }
+  html[data-theme="dark"] button { background: rgba(255,255,255,.08); }
+  html[data-theme="dark"] .gpu-card { background: rgba(255,255,255,.03); }
+
+  [data-accent="green"] { --accent: #16a34a; --accent2: #0d9488; }
+  [data-accent="purple"] { --accent: #7c3aed; --accent2: #db2777; }
+  [data-accent="orange"] { --accent: #ea580c; --accent2: #d97706; }
+
+  .theme-controls { display: flex; align-items: center; gap: 8px; }
+  .theme-controls select { font-size: 12px; padding: 5px 8px; }
 </style>
 </head>
 <body>
@@ -131,7 +165,20 @@ public static class IndexHtml
       <h1>Compressore Video</h1>
       <div class="sub">Accesso remoto - carica video, avvia la compressione e scarica il risultato.</div>
     </div>
-    <button class="link" id="logoutBtn">Esci</button>
+    <div class="theme-controls">
+      <select id="themeSelect" title="Tema">
+        <option value="system">Sistema</option>
+        <option value="light">Chiaro</option>
+        <option value="dark">Scuro</option>
+      </select>
+      <select id="accentSelect" title="Colore">
+        <option value="blue">Blu</option>
+        <option value="green">Verde</option>
+        <option value="purple">Viola</option>
+        <option value="orange">Arancione</option>
+      </select>
+      <button class="link" id="logoutBtn">Esci</button>
+    </div>
   </div>
 
   <div class="card">
@@ -424,6 +471,27 @@ dropzone.addEventListener('drop', e => {
   e.preventDefault();
   dropzone.classList.remove('drag');
   uploadFiles(e.dataTransfer.files);
+});
+
+function applyTheme(theme) {
+  if (theme === 'system') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', theme);
+}
+function applyAccent(accent) {
+  document.documentElement.setAttribute('data-accent', accent);
+}
+
+const themeSelect = document.getElementById('themeSelect');
+const accentSelect = document.getElementById('accentSelect');
+themeSelect.value = localStorage.getItem('vc_theme') || 'system';
+accentSelect.value = localStorage.getItem('vc_accent') || 'blue';
+themeSelect.addEventListener('change', () => {
+  localStorage.setItem('vc_theme', themeSelect.value);
+  applyTheme(themeSelect.value);
+});
+accentSelect.addEventListener('change', () => {
+  localStorage.setItem('vc_accent', accentSelect.value);
+  applyAccent(accentSelect.value);
 });
 
 refresh();
