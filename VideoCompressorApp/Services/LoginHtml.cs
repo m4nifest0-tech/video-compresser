@@ -22,7 +22,7 @@ public static class LoginHtml
 <style>
   :root {
     color-scheme: light dark;
-    --bg: #e9ede8; --fg: #1a1a1a; --sub: #666;
+    --bg: #ccd1d2; --fg: #1a1a1a; --sub: #666;
     --card-bg: rgba(255,255,255,.6); --card-border: rgba(255,255,255,.6);
     --card-shadow: 0 8px 32px rgba(31,38,135,.15);
     --input-bg: rgba(255,255,255,.7); --input-border: rgba(0,0,0,.14);
@@ -36,11 +36,11 @@ public static class LoginHtml
     font-family: -apple-system, "Segoe UI", Arial, sans-serif; color: var(--fg);
     background: var(--bg);
     background-image:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%23153a24' fill-opacity='0.5'%3E%3Cpath d='M100,200 Q80,120 60,20 Q100,60 100,200 Z'/%3E%3Cpath d='M100,200 Q95,110 85,10 Q115,55 100,200 Z'/%3E%3Cpath d='M100,200 Q100,100 100,5 Q100,100 100,200 Z'/%3E%3Cpath d='M100,200 Q105,110 115,10 Q85,55 100,200 Z'/%3E%3Cpath d='M100,200 Q120,120 140,20 Q100,60 100,200 Z'/%3E%3C/g%3E%3C/svg%3E"),
-      radial-gradient(700px circle at 12% 15%, rgba(21,94,60,.26), transparent 60%),
-      radial-gradient(650px circle at 88% 20%, rgba(6,95,70,.22), transparent 60%),
-      radial-gradient(550px circle at 85% 90%, rgba(63,98,18,.18), transparent 60%),
-      radial-gradient(500px circle at 10% 88%, rgba(20,83,45,.16), transparent 60%);
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%233a4448' fill-opacity='0.5'%3E%3Cpath d='M100,200 Q80,120 60,20 Q100,60 100,200 Z'/%3E%3Cpath d='M100,200 Q95,110 85,10 Q115,55 100,200 Z'/%3E%3Cpath d='M100,200 Q100,100 100,5 Q100,100 100,200 Z'/%3E%3Cpath d='M100,200 Q105,110 115,10 Q85,55 100,200 Z'/%3E%3Cpath d='M100,200 Q120,120 140,20 Q100,60 100,200 Z'/%3E%3C/g%3E%3C/svg%3E"),
+      radial-gradient(700px circle at 12% 15%, rgba(150,160,164,.24), transparent 60%),
+      radial-gradient(650px circle at 88% 20%, rgba(120,132,138,.20), transparent 60%),
+      radial-gradient(550px circle at 85% 90%, rgba(20,25,28,.24), transparent 60%),
+      radial-gradient(500px circle at 10% 88%, rgba(45,54,58,.20), transparent 60%);
     background-position: left -30px bottom -50px, 0 0, 0 0, 0 0, 0 0;
     background-size: 300px 300px, auto, auto, auto, auto;
     background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
@@ -105,7 +105,7 @@ public static class LoginHtml
   .error.show { display: block; }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #0d1310; --fg: #eee; --sub: #999;
+      --bg: #12161a; --fg: #eee; --sub: #999;
       --card-bg: rgba(35,36,42,.6); --card-border: rgba(255,255,255,.08);
       --card-shadow: 0 8px 32px rgba(0,0,0,.4);
       --input-bg: rgba(255,255,255,.06); --input-border: rgba(255,255,255,.16);
@@ -115,7 +115,7 @@ public static class LoginHtml
   }
   html[data-theme="dark"] body::before { opacity: .07; }
   :root[data-theme="dark"] {
-    --bg: #0d1310; --fg: #eee; --sub: #999;
+    --bg: #12161a; --fg: #eee; --sub: #999;
     --card-bg: rgba(35,36,42,.6); --card-border: rgba(255,255,255,.08);
     --card-shadow: 0 8px 32px rgba(0,0,0,.4);
     --input-bg: rgba(255,255,255,.06); --input-border: rgba(255,255,255,.16);

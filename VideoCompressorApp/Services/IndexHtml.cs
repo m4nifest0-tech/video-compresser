@@ -23,7 +23,7 @@ public static class IndexHtml
 <style>
   :root {
     color-scheme: light dark;
-    --bg: #e9ede8;
+    --bg: #ccd1d2;
     --fg: #1a1a1a;
     --sub: #666;
     --card-bg: rgba(255,255,255,.55);
@@ -45,13 +45,13 @@ public static class IndexHtml
     font-family: -apple-system, "Segoe UI", Arial, sans-serif; margin: 0; padding: 20px; color: var(--fg);
     background: var(--bg);
     background-image:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%23153a24' fill-opacity='0.5'%3E%3Cpath d='M100,200 Q80,120 60,20 Q100,60 100,200 Z'/%3E%3Cpath d='M100,200 Q95,110 85,10 Q115,55 100,200 Z'/%3E%3Cpath d='M100,200 Q100,100 100,5 Q100,100 100,200 Z'/%3E%3Cpath d='M100,200 Q105,110 115,10 Q85,55 100,200 Z'/%3E%3Cpath d='M100,200 Q120,120 140,20 Q100,60 100,200 Z'/%3E%3C/g%3E%3C/svg%3E"),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%23153a24' fill-opacity='0.4'%3E%3Cpath d='M100,200 Q80,130 65,40 Q100,70 100,200 Z'/%3E%3Cpath d='M100,200 Q100,110 100,15 Q100,110 100,200 Z'/%3E%3Cpath d='M100,200 Q120,130 135,40 Q100,70 100,200 Z'/%3E%3C/g%3E%3C/svg%3E"),
-      radial-gradient(650px circle at 6% 6%, rgba(21,94,60,.24), transparent 60%),
-      radial-gradient(600px circle at 94% 12%, rgba(6,95,70,.20), transparent 60%),
-      radial-gradient(550px circle at 85% 92%, rgba(63,98,18,.16), transparent 60%),
-      radial-gradient(500px circle at 12% 88%, rgba(20,83,45,.16), transparent 60%),
-      radial-gradient(700px circle at 50% 50%, rgba(45,90,39,.14), transparent 60%);
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%233a4448' fill-opacity='0.5'%3E%3Cpath d='M100,200 Q80,120 60,20 Q100,60 100,200 Z'/%3E%3Cpath d='M100,200 Q95,110 85,10 Q115,55 100,200 Z'/%3E%3Cpath d='M100,200 Q100,100 100,5 Q100,100 100,200 Z'/%3E%3Cpath d='M100,200 Q105,110 115,10 Q85,55 100,200 Z'/%3E%3Cpath d='M100,200 Q120,120 140,20 Q100,60 100,200 Z'/%3E%3C/g%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%233a4448' fill-opacity='0.4'%3E%3Cpath d='M100,200 Q80,130 65,40 Q100,70 100,200 Z'/%3E%3Cpath d='M100,200 Q100,110 100,15 Q100,110 100,200 Z'/%3E%3Cpath d='M100,200 Q120,130 135,40 Q100,70 100,200 Z'/%3E%3C/g%3E%3C/svg%3E"),
+      radial-gradient(650px circle at 6% 6%, rgba(120,132,138,.22), transparent 60%),
+      radial-gradient(600px circle at 94% 12%, rgba(150,160,164,.18), transparent 60%),
+      radial-gradient(550px circle at 85% 92%, rgba(45,54,58,.20), transparent 60%),
+      radial-gradient(500px circle at 12% 88%, rgba(38,46,50,.20), transparent 60%),
+      radial-gradient(700px circle at 50% 50%, rgba(205,210,210,.22), transparent 60%);
     background-position: left -40px bottom -60px, right -60px bottom -80px, 0 0, 0 0, 0 0, 0 0, 0 0;
     background-size: 340px 340px, 260px 260px, auto, auto, auto, auto, auto;
     background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
@@ -148,7 +148,7 @@ public static class IndexHtml
   .gpu-empty { font-size: 12px; color: var(--sub); }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #0d1310; --fg: #eee; --sub: #999;
+      --bg: #12161a; --fg: #eee; --sub: #999;
       --card-bg: rgba(35,36,42,.55); --card-border: rgba(255,255,255,.08);
       --card-shadow: 0 8px 32px rgba(0,0,0,.35);
       --input-bg: rgba(255,255,255,.06); --input-border: rgba(255,255,255,.14);
@@ -157,20 +157,20 @@ public static class IndexHtml
     }
     html:not([data-theme="light"]) body {
       background-image:
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%23153a24' fill-opacity='0.5'%3E%3Cpath d='M100,200 Q80,120 60,20 Q100,60 100,200 Z'/%3E%3Cpath d='M100,200 Q95,110 85,10 Q115,55 100,200 Z'/%3E%3Cpath d='M100,200 Q100,100 100,5 Q100,100 100,200 Z'/%3E%3Cpath d='M100,200 Q105,110 115,10 Q85,55 100,200 Z'/%3E%3Cpath d='M100,200 Q120,120 140,20 Q100,60 100,200 Z'/%3E%3C/g%3E%3C/svg%3E"),
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%23153a24' fill-opacity='0.4'%3E%3Cpath d='M100,200 Q80,130 65,40 Q100,70 100,200 Z'/%3E%3Cpath d='M100,200 Q100,110 100,15 Q100,110 100,200 Z'/%3E%3Cpath d='M100,200 Q120,130 135,40 Q100,70 100,200 Z'/%3E%3C/g%3E%3C/svg%3E"),
-        radial-gradient(650px circle at 6% 6%, rgba(21,94,60,.36), transparent 60%),
-        radial-gradient(600px circle at 94% 12%, rgba(6,95,70,.30), transparent 60%),
-        radial-gradient(550px circle at 85% 92%, rgba(63,98,18,.22), transparent 60%),
-        radial-gradient(500px circle at 12% 88%, rgba(20,83,45,.24), transparent 60%),
-        radial-gradient(700px circle at 50% 50%, rgba(45,90,39,.20), transparent 60%);
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%233a4448' fill-opacity='0.5'%3E%3Cpath d='M100,200 Q80,120 60,20 Q100,60 100,200 Z'/%3E%3Cpath d='M100,200 Q95,110 85,10 Q115,55 100,200 Z'/%3E%3Cpath d='M100,200 Q100,100 100,5 Q100,100 100,200 Z'/%3E%3Cpath d='M100,200 Q105,110 115,10 Q85,55 100,200 Z'/%3E%3Cpath d='M100,200 Q120,120 140,20 Q100,60 100,200 Z'/%3E%3C/g%3E%3C/svg%3E"),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%233a4448' fill-opacity='0.4'%3E%3Cpath d='M100,200 Q80,130 65,40 Q100,70 100,200 Z'/%3E%3Cpath d='M100,200 Q100,110 100,15 Q100,110 100,200 Z'/%3E%3Cpath d='M100,200 Q120,130 135,40 Q100,70 100,200 Z'/%3E%3C/g%3E%3C/svg%3E"),
+        radial-gradient(650px circle at 6% 6%, rgba(120,132,138,.32), transparent 60%),
+        radial-gradient(600px circle at 94% 12%, rgba(150,160,164,.26), transparent 60%),
+        radial-gradient(550px circle at 85% 92%, rgba(20,25,28,.34), transparent 60%),
+        radial-gradient(500px circle at 12% 88%, rgba(15,19,22,.34), transparent 60%),
+        radial-gradient(700px circle at 50% 50%, rgba(90,100,105,.22), transparent 60%);
     }
     html:not([data-theme="light"]) body::before { opacity: .07; }
     html:not([data-theme="light"]) button:not(.primary), html:not([data-theme="light"]) a.btn:not(.primary) { background: rgba(255,255,255,.08); }
     html:not([data-theme="light"]) .gpu-card { background: rgba(255,255,255,.03); }
   }
   :root[data-theme="dark"] {
-    --bg: #0d1310; --fg: #eee; --sub: #999;
+    --bg: #12161a; --fg: #eee; --sub: #999;
     --card-bg: rgba(35,36,42,.55); --card-border: rgba(255,255,255,.08);
     --card-shadow: 0 8px 32px rgba(0,0,0,.35);
     --input-bg: rgba(255,255,255,.06); --input-border: rgba(255,255,255,.14);
@@ -179,13 +179,13 @@ public static class IndexHtml
   }
   html[data-theme="dark"] body {
     background-image:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%23153a24' fill-opacity='0.5'%3E%3Cpath d='M100,200 Q80,120 60,20 Q100,60 100,200 Z'/%3E%3Cpath d='M100,200 Q95,110 85,10 Q115,55 100,200 Z'/%3E%3Cpath d='M100,200 Q100,100 100,5 Q100,100 100,200 Z'/%3E%3Cpath d='M100,200 Q105,110 115,10 Q85,55 100,200 Z'/%3E%3Cpath d='M100,200 Q120,120 140,20 Q100,60 100,200 Z'/%3E%3C/g%3E%3C/svg%3E"),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%23153a24' fill-opacity='0.4'%3E%3Cpath d='M100,200 Q80,130 65,40 Q100,70 100,200 Z'/%3E%3Cpath d='M100,200 Q100,110 100,15 Q100,110 100,200 Z'/%3E%3Cpath d='M100,200 Q120,130 135,40 Q100,70 100,200 Z'/%3E%3C/g%3E%3C/svg%3E"),
-      radial-gradient(650px circle at 6% 6%, rgba(21,94,60,.36), transparent 60%),
-      radial-gradient(600px circle at 94% 12%, rgba(6,95,70,.30), transparent 60%),
-      radial-gradient(550px circle at 85% 92%, rgba(63,98,18,.22), transparent 60%),
-      radial-gradient(500px circle at 12% 88%, rgba(20,83,45,.24), transparent 60%),
-      radial-gradient(700px circle at 50% 50%, rgba(45,90,39,.20), transparent 60%);
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%233a4448' fill-opacity='0.5'%3E%3Cpath d='M100,200 Q80,120 60,20 Q100,60 100,200 Z'/%3E%3Cpath d='M100,200 Q95,110 85,10 Q115,55 100,200 Z'/%3E%3Cpath d='M100,200 Q100,100 100,5 Q100,100 100,200 Z'/%3E%3Cpath d='M100,200 Q105,110 115,10 Q85,55 100,200 Z'/%3E%3Cpath d='M100,200 Q120,120 140,20 Q100,60 100,200 Z'/%3E%3C/g%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%233a4448' fill-opacity='0.4'%3E%3Cpath d='M100,200 Q80,130 65,40 Q100,70 100,200 Z'/%3E%3Cpath d='M100,200 Q100,110 100,15 Q100,110 100,200 Z'/%3E%3Cpath d='M100,200 Q120,130 135,40 Q100,70 100,200 Z'/%3E%3C/g%3E%3C/svg%3E"),
+      radial-gradient(650px circle at 6% 6%, rgba(120,132,138,.32), transparent 60%),
+      radial-gradient(600px circle at 94% 12%, rgba(150,160,164,.26), transparent 60%),
+      radial-gradient(550px circle at 85% 92%, rgba(20,25,28,.34), transparent 60%),
+      radial-gradient(500px circle at 12% 88%, rgba(15,19,22,.34), transparent 60%),
+      radial-gradient(700px circle at 50% 50%, rgba(90,100,105,.22), transparent 60%);
   }
   html[data-theme="dark"] body::before { opacity: .07; }
   html[data-theme="dark"] body::after { opacity: .7; }
