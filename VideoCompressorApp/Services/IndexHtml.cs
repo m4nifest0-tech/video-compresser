@@ -25,7 +25,7 @@ public static class IndexHtml
     color-scheme: light dark;
     --bg: #ccd1d2;
     --fg: #1a1a1a;
-    --sub: #666;
+    --sub: #4d4d4d;
     --card-bg: rgba(255,255,255,.55);
     --card-border: rgba(255,255,255,.6);
     --card-shadow: 0 8px 32px rgba(31,38,135,.12);
@@ -113,7 +113,7 @@ public static class IndexHtml
   #statusLine { display: flex; justify-content: space-between; font-size: 12px; color: var(--sub); }
   .actions button, .actions a.btn { font-size: 11px; padding: 4px 10px; margin-right: 4px; }
   .gpu-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
-  .gpu-card { border: 1px solid var(--row-border); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; background: rgba(255,255,255,.25); }
+  .gpu-card { border: 1px solid var(--row-border); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; background: rgba(255,255,255,.45); }
   .gpu-card:last-child { margin-bottom: 0; }
   .gpu-name { font-size: 12px; font-weight: 600; margin-bottom: 8px; }
   .gpu-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
@@ -126,7 +126,7 @@ public static class IndexHtml
   .gpu-empty { font-size: 12px; color: var(--sub); }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #12161a; --fg: #eee; --sub: #999;
+      --bg: #12161a; --fg: #eee; --sub: #b3b3b3;
       --card-bg: rgba(35,36,42,.55); --card-border: rgba(255,255,255,.08);
       --card-shadow: 0 8px 32px rgba(0,0,0,.35);
       --input-bg: rgba(255,255,255,.06); --input-border: rgba(255,255,255,.14);
@@ -138,10 +138,10 @@ public static class IndexHtml
     }
     html:not([data-theme="light"]) body::before { opacity: .07; }
     html:not([data-theme="light"]) button:not(.primary), html:not([data-theme="light"]) a.btn:not(.primary) { background: rgba(255,255,255,.08); }
-    html:not([data-theme="light"]) .gpu-card { background: rgba(255,255,255,.03); }
+    html:not([data-theme="light"]) .gpu-card { background: rgba(0,0,0,.28); }
   }
   :root[data-theme="dark"] {
-    --bg: #12161a; --fg: #eee; --sub: #999;
+    --bg: #12161a; --fg: #eee; --sub: #b3b3b3;
     --card-bg: rgba(35,36,42,.55); --card-border: rgba(255,255,255,.08);
     --card-shadow: 0 8px 32px rgba(0,0,0,.35);
     --input-bg: rgba(255,255,255,.06); --input-border: rgba(255,255,255,.14);
@@ -153,7 +153,7 @@ public static class IndexHtml
   }
   html[data-theme="dark"] body::before { opacity: .07; }
   html[data-theme="dark"] button:not(.primary), html[data-theme="dark"] a.btn:not(.primary) { background: rgba(255,255,255,.08); }
-  html[data-theme="dark"] .gpu-card { background: rgba(255,255,255,.03); }
+  html[data-theme="dark"] .gpu-card { background: rgba(0,0,0,.28); }
 
   [data-accent="green"] { --accent: #16a34a; --accent2: #0d9488; }
   [data-accent="purple"] { --accent: #7c3aed; --accent2: #db2777; }

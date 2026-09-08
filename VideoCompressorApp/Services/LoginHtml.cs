@@ -22,7 +22,7 @@ public static class LoginHtml
 <style>
   :root {
     color-scheme: light dark;
-    --bg: #ccd1d2; --fg: #1a1a1a; --sub: #666;
+    --bg: #ccd1d2; --fg: #1a1a1a; --sub: #4d4d4d;
     --card-bg: rgba(255,255,255,.6); --card-border: rgba(255,255,255,.6);
     --card-shadow: 0 8px 32px rgba(31,38,135,.15);
     --input-bg: rgba(255,255,255,.7); --input-border: rgba(0,0,0,.14);
@@ -88,7 +88,7 @@ public static class LoginHtml
   .error.show { display: block; }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #12161a; --fg: #eee; --sub: #999;
+      --bg: #12161a; --fg: #eee; --sub: #b3b3b3;
       --card-bg: rgba(35,36,42,.6); --card-border: rgba(255,255,255,.08);
       --card-shadow: 0 8px 32px rgba(0,0,0,.4);
       --input-bg: rgba(255,255,255,.06); --input-border: rgba(255,255,255,.16);
@@ -98,7 +98,7 @@ public static class LoginHtml
   }
   html[data-theme="dark"] body::before { opacity: .07; }
   :root[data-theme="dark"] {
-    --bg: #12161a; --fg: #eee; --sub: #999;
+    --bg: #12161a; --fg: #eee; --sub: #b3b3b3;
     --card-bg: rgba(35,36,42,.6); --card-border: rgba(255,255,255,.08);
     --card-shadow: 0 8px 32px rgba(0,0,0,.4);
     --input-bg: rgba(255,255,255,.06); --input-border: rgba(255,255,255,.16);
