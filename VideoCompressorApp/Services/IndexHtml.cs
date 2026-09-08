@@ -207,7 +207,7 @@ public static class IndexHtml
      si accende in base all'utilizzo, virando all'arancio/rosso alle temperature piu' alte: il
      risultato e' quindi sempre diverso, e vivo, per ogni utente/macchina. */
   .gpu-hero { display: flex; align-items: center; gap: 36px; margin-bottom: 20px; flex-wrap: wrap; }
-  .chip-stage { flex: none; width: 230px; height: 160px; perspective: 900px; }
+  .chip-stage { flex: none; width: 260px; height: 180px; perspective: 950px; }
   .chip-tilt {
     width: 100%; height: 100%; transform-style: preserve-3d;
     transform: rotateX(var(--ry, 0deg)) rotateY(var(--rx, 0deg));
@@ -224,59 +224,71 @@ public static class IndexHtml
   }
   /* Costruzione del box 3D: ogni faccia e' centrata nel genitore (position:absolute, top/left 50%,
      margine negativo pari a meta' delle proprie dimensioni) e poi ruotata e allontanata lungo Z di
-     meta' della terza dimensione del box (W=172, H=50, D=66) - la formula standard per assemblare
-     un cuboide in CSS 3D. Servono solo le 3 facce visibili dall'angolazione della card (fronte,
-     sopra, testata): l'oggetto non ruota mai abbastanza da scoprire le facce mancanti. */
+     meta' della terza dimensione del box (W=192, H=58, D=74) - la formula standard per assemblare
+     un cuboide in CSS 3D. Servono solo le 3 facce visibili dall'angolazione della card (fronte con
+     doppia ventola, dissipatore visto dall'alto, staffa I/O): l'oggetto non ruota mai abbastanza da
+     scoprire le facce mancanti. */
   .gpu-model {
-    position: relative; width: 172px; height: 50px; flex: none;
+    position: relative; width: 192px; height: 58px; flex: none;
     transform-style: preserve-3d;
     filter: drop-shadow(0 22px 26px rgba(0,0,0,.45)) drop-shadow(0 0 26px var(--chip-tile-color, var(--accent-glow)));
     transition: filter .6s ease;
   }
   .gpu-face { position: absolute; top: 50%; left: 50%; backface-visibility: hidden; }
   .gpu-face-front {
-    width: 172px; height: 50px; margin: -25px 0 0 -86px;
-    border-radius: 7px;
-    background: linear-gradient(155deg, #35363c 0%, #17181b 55%, #0a0a0c 100%);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.07);
-    transform: translateZ(33px);
-    display: flex; align-items: center; justify-content: center;
+    width: 192px; height: 58px; margin: -29px 0 0 -96px;
+    border-radius: 9px;
+    background: linear-gradient(155deg, #38393f 0%, #18191c 55%, #0a0a0c 100%);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.07), inset 0 1px 0 rgba(255,255,255,.09);
+    transform: translateZ(37px);
+    display: flex; align-items: center; justify-content: space-evenly; padding: 0 12px;
   }
   .gpu-face-top {
-    width: 172px; height: 66px; margin: -33px 0 0 -86px;
-    background: repeating-linear-gradient(90deg, #303136 0 3px, #101113 3px 8px);
-    transform: rotateX(90deg) translateZ(25px);
-    border-radius: 7px 7px 0 0;
+    width: 192px; height: 74px; margin: -37px 0 0 -96px;
+    background: repeating-linear-gradient(90deg, #dcdee3 0 1.5px, #9a9ca3 1.5px 2.5px, #4c4d52 2.5px 6px);
+    transform: rotateX(90deg) translateZ(29px);
+    border-radius: 9px 9px 0 0;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.3);
   }
   .gpu-face-end {
-    width: 66px; height: 50px; margin: -25px 0 0 -33px;
-    background: linear-gradient(90deg, #3d3e44, #1a1b1e);
-    transform: rotateY(90deg) translateZ(86px);
-    border-radius: 0 7px 7px 0;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+    width: 74px; height: 58px; margin: -29px 0 0 -37px;
+    background: linear-gradient(90deg, #404146, #1c1d20);
+    transform: rotateY(90deg) translateZ(96px);
+    border-radius: 0 9px 9px 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    box-shadow: inset 0 0 14px rgba(0,0,0,.55);
   }
-  .gpu-port { width: 55%; height: 5px; background: #060607; border-radius: 1px; box-shadow: inset 0 0 1px rgba(255,255,255,.18); }
-  .gpu-fan { position: relative; width: 36px; height: 36px; border-radius: 50%; }
+  .gpu-port { height: 5px; border-radius: 1px; background: #060607; box-shadow: inset 0 0 1px rgba(255,255,255,.18); }
+  .gpu-port-wide { width: 58%; }
+  .gpu-port:not(.gpu-port-wide) { width: 40%; }
+  /* Feritoie di sfiato tra le due ventole, come su una scheda a doppia/tripla ventola vera. */
+  .gpu-vents {
+    align-self: stretch; width: 14px; margin: 10px 0; border-radius: 2px;
+    background-image: radial-gradient(circle, rgba(255,255,255,.12) 1px, transparent 1.4px);
+    background-size: 6px 6px;
+    opacity: .8;
+  }
+  .gpu-fan { position: relative; width: 42px; height: 42px; border-radius: 50%; flex: none; }
   .gpu-fan-ring {
     position: absolute; inset: 0; border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #3f4046, #08090a 72%);
-    box-shadow: inset 0 0 5px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.05);
+    background: radial-gradient(circle at 35% 30%, #45464c, #08090a 72%);
+    box-shadow: inset 0 0 5px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.06);
   }
   .gpu-fan-blades {
     position: absolute; inset: 3px; border-radius: 50%;
-    background: conic-gradient(#1c1d20 0deg 12deg, transparent 12deg 45deg,
-      #1c1d20 45deg 57deg, transparent 57deg 90deg, #1c1d20 90deg 102deg, transparent 102deg 135deg,
-      #1c1d20 135deg 147deg, transparent 147deg 180deg, #1c1d20 180deg 192deg, transparent 192deg 225deg,
-      #1c1d20 225deg 237deg, transparent 237deg 270deg, #1c1d20 270deg 282deg, transparent 282deg 315deg,
-      #1c1d20 315deg 327deg, transparent 327deg 360deg);
+    background: conic-gradient(#212227 0deg 12deg, transparent 12deg 45deg,
+      #212227 45deg 57deg, transparent 57deg 90deg, #212227 90deg 102deg, transparent 102deg 135deg,
+      #212227 135deg 147deg, transparent 147deg 180deg, #212227 180deg 192deg, transparent 192deg 225deg,
+      #212227 225deg 237deg, transparent 237deg 270deg, #212227 270deg 282deg, transparent 282deg 315deg,
+      #212227 315deg 327deg, transparent 327deg 360deg);
     animation: fanSpin linear infinite;
     animation-duration: var(--fan-duration, 3s);
     animation-play-state: var(--fan-state, paused);
   }
   @keyframes fanSpin { to { transform: rotate(360deg); } }
-  .gpu-fan-hub { position: absolute; inset: 12px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #55565d, #0d0e10); }
+  .gpu-fan-hub { position: absolute; inset: 14px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #5b5c63, #0d0e10); box-shadow: 0 0 0 1px rgba(255,255,255,.08); }
   .gpu-glow-strip {
-    position: absolute; left: 10%; right: 10%; bottom: 5px; height: 3px; border-radius: 2px;
+    position: absolute; left: 8%; right: 8%; bottom: 4px; height: 3px; border-radius: 2px;
     background: var(--chip-tile-color, var(--accent));
     box-shadow: 0 0 10px 2px var(--chip-tile-color, var(--accent-glow));
     opacity: var(--chip-intensity, .35);
@@ -633,9 +645,15 @@ function createGpuHero() {
         <div class="gpu-model" aria-hidden="true">
           <div class="gpu-face gpu-face-top"></div>
           <div class="gpu-face gpu-face-end">
-            <div class="gpu-port"></div><div class="gpu-port"></div><div class="gpu-port"></div>
+            <div class="gpu-port gpu-port-wide"></div><div class="gpu-port"></div><div class="gpu-port"></div>
           </div>
           <div class="gpu-face gpu-face-front">
+            <div class="gpu-fan">
+              <div class="gpu-fan-ring"></div>
+              <div class="gpu-fan-blades"></div>
+              <div class="gpu-fan-hub"></div>
+            </div>
+            <div class="gpu-vents"></div>
             <div class="gpu-fan">
               <div class="gpu-fan-ring"></div>
               <div class="gpu-fan-blades"></div>

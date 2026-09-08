@@ -75,9 +75,49 @@ public static class LoginHtml
     html:not([data-theme="light"]) .card { background: rgba(22,23,28,.94); }
     html[data-theme="dark"] .card { background: rgba(22,23,28,.94); }
   }
-  .logo { text-align: center; font-size: 34px; margin-bottom: 8px;
+  /* Icona "Face ID": un anello SVG che respira in idle, gira come indicatore di avanzamento
+     durante la verifica delle credenziali e si completa in un segno di spunta verde in caso di
+     successo (o si tinge di rosso con uno scatto orizzontale in caso di errore), invece di limitarsi
+     a un redirect istantaneo dopo l'invio del form. */
+  .faceid { position: relative; width: 60px; height: 60px; margin: 0 auto 16px;
     animation: popIn .5s cubic-bezier(.34,1.56,.64,1) .15s both; }
   @keyframes popIn { from { opacity: 0; transform: scale(.5); } to { opacity: 1; transform: scale(1); } }
+  .faceid-ring { position: absolute; inset: 0; transform: rotate(-90deg);
+    animation: faceidBreathe 2.6s ease-in-out .65s infinite; }
+  .faceid-ring-bg { fill: none; stroke: var(--input-border); stroke-width: 3; }
+  .faceid-ring-scan {
+    fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round;
+    stroke-dasharray: 170; stroke-dashoffset: 170; opacity: 0;
+    transition: stroke-dashoffset .4s ease, stroke .3s ease, opacity .2s ease;
+  }
+  @keyframes faceidBreathe {
+    0%, 100% { opacity: .5; transform: rotate(-90deg) scale(1); }
+    50% { opacity: .9; transform: rotate(-90deg) scale(1.05); }
+  }
+  .faceid-check {
+    position: absolute; inset: 0; margin: auto; width: 24px; height: 24px;
+    fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;
+    stroke-dasharray: 20; stroke-dashoffset: 20; opacity: 0;
+  }
+  .faceid.scanning .faceid-ring { animation: faceidSpin 1s linear infinite; }
+  .faceid.scanning .faceid-ring-scan { opacity: 1; stroke-dashoffset: 120; }
+  @keyframes faceidSpin { to { transform: rotate(270deg); } }
+  .faceid.success .faceid-ring { animation: none; }
+  .faceid.success .faceid-ring-scan { opacity: 1; stroke-dashoffset: 0; stroke: #34c759; }
+  .faceid.success .faceid-check {
+    opacity: 1; stroke-dashoffset: 0; stroke: #34c759;
+    transition: stroke-dashoffset .35s ease .25s, opacity .15s ease .25s;
+  }
+  .faceid.faceid-error .faceid-ring { animation: none; }
+  .faceid.faceid-error .faceid-ring-scan { opacity: 1; stroke-dashoffset: 0; stroke: var(--error-fg); }
+  .faceid.faceid-error { animation: faceidShake .4s ease; }
+  @keyframes faceidShake {
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+  }
+  /* Uscita della card verso la dashboard dopo un accesso riuscito, invece di un redirect a scatto. */
+  .card.leave { animation: cardLeave .38s cubic-bezier(.4,0,1,1) both; }
+  @keyframes cardLeave { to { opacity: 0; transform: scale(.96) translateY(-6px); } }
   h1 {
     font-size: 20px; font-weight: 700; text-align: center; margin: 0 0 26px; letter-spacing: -.02em;
     color: var(--accent); transition: color .3s ease;
@@ -148,8 +188,16 @@ public static class LoginHtml
 </head>
 <body>
   <div class="aurora" aria-hidden="true"><span></span><span></span><span></span></div>
-  <form class="card" method="post" action="/login">
-    <div class="logo" aria-hidden="true">&#127909;</div>
+  <form class="card" id="loginForm" method="post" action="/login">
+    <div class="faceid" id="faceid" aria-hidden="true">
+      <svg class="faceid-ring" viewBox="0 0 60 60">
+        <circle class="faceid-ring-bg" cx="30" cy="30" r="27"></circle>
+        <circle class="faceid-ring-scan" cx="30" cy="30" r="27"></circle>
+      </svg>
+      <svg class="faceid-check" viewBox="0 0 24 24">
+        <path d="M5 13l4 4L19 7"></path>
+      </svg>
+    </div>
     <h1>Compressore Video</h1>
     <div class="error" id="errorBox" role="alert" aria-live="assertive"></div>
     <label for="username">Utente</label>
@@ -159,15 +207,61 @@ public static class LoginHtml
     <button type="submit">Accedi</button>
   </form>
 <script>
-  const params = new URLSearchParams(location.search);
-  const err = params.get('error');
-  if (err) {
-    const box = document.getElementById('errorBox');
-    box.textContent = err === 'locked'
+  const form = document.getElementById('loginForm');
+  const faceid = document.getElementById('faceid');
+  const errorBox = document.getElementById('errorBox');
+  const submitBtn = form.querySelector('button');
+
+  function showError(text) {
+    errorBox.textContent = text;
+    errorBox.classList.add('show');
+  }
+  function errorMessage(code) {
+    return code === 'locked'
       ? 'Troppi tentativi falliti. Riprova tra qualche minuto.'
       : 'Utente o password non validi.';
-    box.classList.add('show');
   }
+
+  const initialErr = new URLSearchParams(location.search).get('error');
+  if (initialErr) showError(errorMessage(initialErr));
+
+  // Invio via fetch invece del normale postback: permette di mostrare l'esito (successo/errore)
+  // con l'animazione dell'anello prima di lasciare la pagina, cosa impossibile con un form
+  // tradizionale che ricarica subito la pagina di destinazione.
+  let busy = false;
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    busy = true;
+    errorBox.classList.remove('show');
+    faceid.classList.remove('success', 'faceid-error');
+    faceid.classList.add('scanning');
+    submitBtn.disabled = true;
+    try {
+      const res = await fetch('/login', { method: 'POST', body: new FormData(form) });
+      const resUrl = new URL(res.url);
+      const success = resUrl.pathname !== '/login';
+      faceid.classList.remove('scanning');
+      if (success) {
+        faceid.classList.add('success');
+        setTimeout(() => {
+          form.classList.add('leave');
+          setTimeout(() => { location.href = '/'; }, 380);
+        }, 550);
+      } else {
+        faceid.classList.add('faceid-error');
+        showError(errorMessage(resUrl.searchParams.get('error')));
+        submitBtn.disabled = false;
+        busy = false;
+        setTimeout(() => faceid.classList.remove('faceid-error'), 500);
+      }
+    } catch {
+      faceid.classList.remove('scanning');
+      showError('Errore di rete. Riprova.');
+      submitBtn.disabled = false;
+      busy = false;
+    }
+  });
 </script>
 </body>
 </html>
