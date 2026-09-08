@@ -207,7 +207,16 @@ public static class IndexHtml
      si accende in base all'utilizzo, virando all'arancio/rosso alle temperature piu' alte: il
      risultato e' quindi sempre diverso, e vivo, per ogni utente/macchina. */
   .gpu-hero { display: flex; align-items: center; gap: 36px; margin-bottom: 20px; flex-wrap: wrap; }
-  .chip-stage { flex: none; width: 260px; height: 180px; perspective: 950px; }
+  /* Il filter (ombra di contatto/bagliore) vive qui, FUORI dalla catena preserve-3d qui sotto: un
+     filter/opacity/mask sullo stesso elemento che dichiara transform-style:preserve-3d costringe il
+     browser ad appiattirlo (regola delle "grouping properties" delle CSS Transforms), che e' il
+     motivo per cui prima il modellino risultava piatto nonostante le facce fossero ruotate
+     correttamente nello spazio. Qui il filter agisce solo sul composito 3D gia' renderizzato. */
+  .chip-stage {
+    flex: none; width: 260px; height: 190px; perspective: 620px;
+    filter: drop-shadow(0 28px 24px rgba(0,0,0,.5)) drop-shadow(0 0 26px var(--chip-tile-color, var(--accent-glow)));
+    transition: filter .6s ease;
+  }
   .chip-tilt {
     width: 100%; height: 100%; transform-style: preserve-3d;
     transform: rotateX(var(--ry, 0deg)) rotateY(var(--rx, 0deg));
@@ -219,44 +228,47 @@ public static class IndexHtml
     animation: chipFloat 9s ease-in-out infinite;
   }
   @keyframes chipFloat {
-    0%, 100% { transform: rotateX(14deg) rotateY(-30deg) translateY(0); }
-    50% { transform: rotateX(11deg) rotateY(-24deg) translateY(-8px); }
+    0%, 100% { transform: rotateX(20deg) rotateY(-38deg) translateY(0); }
+    50% { transform: rotateX(16deg) rotateY(-30deg) translateY(-8px); }
   }
   /* Costruzione del box 3D: ogni faccia e' centrata nel genitore (position:absolute, top/left 50%,
      margine negativo pari a meta' delle proprie dimensioni) e poi ruotata e allontanata lungo Z di
-     meta' della terza dimensione del box (W=192, H=58, D=74) - la formula standard per assemblare
-     un cuboide in CSS 3D. Servono solo le 3 facce visibili dall'angolazione della card (fronte con
-     doppia ventola, dissipatore visto dall'alto, staffa I/O): l'oggetto non ruota mai abbastanza da
-     scoprire le facce mancanti. */
+     meta' della terza dimensione del box (W=190, H=60, D=88) - la formula standard per assemblare
+     un cuboide in CSS 3D. Una perspective piu' corta (sul contenitore, non qui) e un angolo di
+     partenza piu' marcato esagerano volutamente la prospettiva, cosi' il volume si legge a colpo
+     d'occhio invece di sembrare un adesivo piatto. Servono solo le 3 facce visibili dall'angolazione
+     della card (fronte con doppia ventola, dissipatore visto dall'alto, staffa I/O): l'oggetto non
+     ruota mai abbastanza da scoprire le facce mancanti. */
   .gpu-model {
-    position: relative; width: 192px; height: 58px; flex: none;
+    position: relative; width: 190px; height: 60px; flex: none;
     transform-style: preserve-3d;
-    filter: drop-shadow(0 22px 26px rgba(0,0,0,.45)) drop-shadow(0 0 26px var(--chip-tile-color, var(--accent-glow)));
-    transition: filter .6s ease;
   }
   .gpu-face { position: absolute; top: 50%; left: 50%; backface-visibility: hidden; }
   .gpu-face-front {
-    width: 192px; height: 58px; margin: -29px 0 0 -96px;
+    width: 190px; height: 60px; margin: -30px 0 0 -95px;
     border-radius: 9px;
-    background: linear-gradient(155deg, #38393f 0%, #18191c 55%, #0a0a0c 100%);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.07), inset 0 1px 0 rgba(255,255,255,.09);
-    transform: translateZ(37px);
+    background: linear-gradient(160deg, #4a4b52 0%, #1c1d20 42%, #0a0a0c 100%);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), inset 0 1px 0 rgba(255,255,255,.1),
+      inset 0 4px 6px -4px rgba(0,0,0,.65);
+    transform: translateZ(44px);
     display: flex; align-items: center; justify-content: space-evenly; padding: 0 12px;
   }
   .gpu-face-top {
-    width: 192px; height: 74px; margin: -37px 0 0 -96px;
-    background: repeating-linear-gradient(90deg, #dcdee3 0 1.5px, #9a9ca3 1.5px 2.5px, #4c4d52 2.5px 6px);
-    transform: rotateX(90deg) translateZ(29px);
+    width: 190px; height: 88px; margin: -44px 0 0 -95px;
+    background:
+      linear-gradient(200deg, rgba(255,255,255,.4), rgba(255,255,255,0) 45%),
+      repeating-linear-gradient(90deg, #dfe1e6 0 1.5px, #9a9ca3 1.5px 2.5px, #4c4d52 2.5px 6px);
+    transform: rotateX(90deg) translateZ(30px);
     border-radius: 9px 9px 0 0;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.3);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
   }
   .gpu-face-end {
-    width: 74px; height: 58px; margin: -29px 0 0 -37px;
-    background: linear-gradient(90deg, #404146, #1c1d20);
-    transform: rotateY(90deg) translateZ(96px);
+    width: 88px; height: 60px; margin: -30px 0 0 -44px;
+    background: linear-gradient(100deg, #45464c, #17181b);
+    transform: rotateY(90deg) translateZ(95px);
     border-radius: 0 9px 9px 0;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-    box-shadow: inset 0 0 14px rgba(0,0,0,.55);
+    box-shadow: inset 0 0 16px rgba(0,0,0,.6);
   }
   .gpu-port { height: 5px; border-radius: 1px; background: #060607; box-shadow: inset 0 0 1px rgba(255,255,255,.18); }
   .gpu-port-wide { width: 58%; }
@@ -443,7 +455,7 @@ public static class IndexHtml
     </div>
   </div>
 
-  <div class="card">
+  <div class="card reveal">
     <div class="section-heading">
       <h2>La tua GPU</h2>
       <div class="sub">Monitoraggio in tempo reale, mentre la GPU comprime i tuoi video.</div>
@@ -451,7 +463,7 @@ public static class IndexHtml
     <div id="gpuBody"><div class="gpu-empty">Lettura in corso...</div></div>
   </div>
 
-  <div class="card">
+  <div class="card reveal">
     <div class="row">
       <div>
         <label for="destDir">Cartella destinazione (sul server)</label>
@@ -477,7 +489,7 @@ public static class IndexHtml
     </div>
   </div>
 
-  <div class="card">
+  <div class="card reveal">
     <div id="dropzone" tabindex="0" role="button" aria-label="Trascina qui i video oppure premi Invio per selezionarli">Trascina qui i video oppure clicca per selezionarli</div>
     <input type="file" id="fileInput" multiple accept="video/*" style="display:none">
     <div id="uploadProgressWrap" hidden>
@@ -486,7 +498,7 @@ public static class IndexHtml
     </div>
   </div>
 
-  <div class="card">
+  <div class="card reveal">
     <progress id="overallProgress" max="1" value="0" aria-label="Avanzamento complessivo della compressione"></progress>
     <div id="statusLine">
       <span id="statusText">Pronto.</span>
@@ -500,7 +512,7 @@ public static class IndexHtml
     </div>
   </div>
 
-  <div class="card">
+  <div class="card reveal">
     <table>
       <thead>
         <tr>
@@ -684,6 +696,7 @@ function createGpuHero() {
   return {
     root,
     nameEl: root.querySelector('.gpu-hero-name'),
+    stageEl: root.querySelector('.chip-stage'),
     modelEl: root.querySelector('.gpu-model'),
     statUtil: root.querySelector('.gpu-stat-value.util'),
     statEnc: root.querySelector('.gpu-stat-value.enc'),
@@ -728,11 +741,14 @@ function updateGpuCard(entry, g) {
   entry.hero.statEnc.textContent = enc != null ? enc.toFixed(0) + '%' : '-';
   entry.hero.statMem.textContent = memPercent != null ? memPercent.toFixed(0) + '%' : '-';
   // Il bagliore sotto il modellino e' vivo: piu' intenso quanto piu' la GPU e' utilizzata, cosi'
-  // comunica a colpo d'occhio "sta lavorando" senza dover leggere i numeri.
-  entry.hero.modelEl.style.setProperty('--chip-intensity', (0.22 + 0.5 * Math.min(1, Math.max(0, (util ?? 0) / 100))).toFixed(2));
+  // comunica a colpo d'occhio "sta lavorando" senza dover leggere i numeri. Impostate sullo
+  // .chip-stage (non su .gpu-model) perche' e' li' che vive il filter drop-shadow che le legge: un
+  // custom property scende ai discendenti, non risale, quindi deve stare sull'antenato comune a
+  // filter e .gpu-glow-strip.
+  entry.hero.stageEl.style.setProperty('--chip-intensity', (0.22 + 0.5 * Math.min(1, Math.max(0, (util ?? 0) / 100))).toFixed(2));
   const hotColor = chipColorFor(g.temperatureC);
-  if (hotColor) entry.hero.modelEl.style.setProperty('--chip-tile-color', hotColor);
-  else entry.hero.modelEl.style.removeProperty('--chip-tile-color');
+  if (hotColor) entry.hero.stageEl.style.setProperty('--chip-tile-color', hotColor);
+  else entry.hero.stageEl.style.removeProperty('--chip-tile-color');
   // La ventola gira alla velocita' reale della scheda: si ferma se il sensore riporta 0% (o non
   // la espone), come farebbe una scheda vera a riposo, invece di girare a vuoto senza motivo.
   const fanPercent = g.fanSpeedPercent;
