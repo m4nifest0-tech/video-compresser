@@ -213,7 +213,7 @@ public static class IndexHtml
     <div class="row">
       <label><input type="checkbox" id="preserveStructure"> Mantieni struttura cartelle</label>
       <label><input type="checkbox" id="skipExisting"> Salta se gia' esistente</label>
-      <label><input type="checkbox" id="deleteSource"> Elimina originale dopo compressione</label>
+      <label><input type="checkbox" id="deleteSource"> Elimina originale dopo compressione (irreversibile)</label>
     </div>
   </div>
 
@@ -387,6 +387,11 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
 });
 
 document.getElementById('applySettings').addEventListener('click', async () => {
+  const deleteSourceCheckbox = document.getElementById('deleteSource');
+  if (deleteSourceCheckbox.checked && !confirm("Confermi l'eliminazione dei file originali dopo ogni compressione riuscita?\n\nQuesta azione e' irreversibile: i file di origine verranno cancellati definitivamente, non spostati nel Cestino.")) {
+    deleteSourceCheckbox.checked = false;
+    return;
+  }
   const body = {
     destDir: document.getElementById('destDir').value,
     codecValue: document.getElementById('codec').value,

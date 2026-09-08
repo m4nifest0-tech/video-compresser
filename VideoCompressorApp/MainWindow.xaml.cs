@@ -768,6 +768,14 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (DeleteSourceCheck.IsChecked == true)
+        {
+            var confirm = MessageBox.Show(
+                "Confermi l'eliminazione dei file originali dopo ogni compressione riuscita?\n\nQuesta azione e' irreversibile: i file di origine verranno cancellati definitivamente, non spostati nel Cestino.",
+                "Conferma eliminazione originali", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+            if (confirm != MessageBoxResult.Yes) return;
+        }
+
         await RunCompressionAsync();
     }
 
