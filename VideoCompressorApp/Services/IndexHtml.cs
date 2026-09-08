@@ -48,6 +48,11 @@ public static class IndexHtml
     --error-border: rgba(192,57,43,.35);
     --error-fg: #c0392b;
     --aurora-opacity: .14;
+    /* Superficie del "chip" GPU: gradiente chiaro->scuro per simulare un die in metallo spazzolato,
+       come nei render dei chip Apple. */
+    --chip-hi: #ffffff;
+    --chip-mid: #e4e6eb;
+    --chip-lo: #aeb2bc;
   }
   * { box-sizing: border-box; }
   html, body { min-height: 100%; }
@@ -74,15 +79,15 @@ public static class IndexHtml
   .wrap { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; }
   .topbar { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px;
     animation: riseIn .5s cubic-bezier(.16,1,.3,1) both; }
-  h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; letter-spacing: -.02em; }
+  h1 { font-size: 28px; font-weight: 700; margin: 0 0 4px; letter-spacing: -.03em; }
   .sub { color: var(--sub); font-size: 13px; }
   .card {
     position: relative;
     background: var(--card-bg);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(200%);
+    backdrop-filter: blur(30px) saturate(200%);
     border: 1px solid var(--card-border);
-    border-radius: 18px; padding: 18px 20px; margin-bottom: 16px;
+    border-radius: 24px; padding: 26px 28px; margin-bottom: 20px;
     box-shadow: var(--card-shadow);
     animation: riseIn .6s cubic-bezier(.16,1,.3,1) both;
     transition: background-color .4s ease, border-color .4s ease, box-shadow .4s ease;
@@ -126,7 +131,7 @@ public static class IndexHtml
   select:hover { border-color: var(--accent); }
   select option { background: var(--select-bg); color: var(--select-fg); }
   button, a.btn {
-    padding: 9px 16px; border: 1px solid var(--control-border); border-radius: 10px;
+    padding: 10px 18px; border: 1px solid var(--control-border); border-radius: 12px;
     background: var(--control-bg); color: var(--fg); cursor: pointer; font-size: 13px; font-weight: 500;
     transition: transform .15s cubic-bezier(.34,1.56,.64,1), background-color .15s ease, box-shadow .15s ease, border-color .15s ease;
     display: inline-block; text-decoration: none; box-sizing: border-box;
@@ -180,52 +185,74 @@ public static class IndexHtml
   #overallProgress { width: 100%; height: 18px; margin-bottom: 6px; }
   #statusLine { display: flex; justify-content: space-between; font-size: 12px; color: var(--sub); }
   .actions button, .actions a.btn { font-size: 12px; padding: 4px 10px; margin-right: 4px; }
-  .gpu-card { border: 1px solid var(--row-border); border-radius: 12px; padding: 14px 16px; margin-bottom: 8px;
+  .gpu-card { border: 1px solid var(--row-border); border-radius: 16px; padding: 18px 20px; margin-bottom: 10px;
     background: var(--gpu-card-bg); transition: background-color .4s ease, border-color .4s ease; }
   .gpu-card:last-child { margin-bottom: 0; }
-  .gpu-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
-  .gpu-metric label { font-size: 12px; color: var(--sub); display: block; margin-bottom: 3px; }
-  .gpu-metric .value { font-size: 13px; font-weight: 600; }
+  .gpu-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .gpu-metric {
+    background: var(--control-bg); border-radius: 14px; padding: 12px 14px;
+    transition: background-color .4s ease;
+  }
+  .gpu-metric label { font-size: 12px; color: var(--sub); display: block; margin-bottom: 4px; }
+  .gpu-metric .value { font-size: 14px; font-weight: 600; }
   .meter { height: 8px; border-radius: 4px; background: var(--track); overflow: hidden; margin-top: 4px; }
   .meter > div { height: 100%; background: var(--accent); transition: width .3s cubic-bezier(.4,0,.2,1); }
   .meter.warn > div { background: #e67e22; }
   .meter.hot > div { background: #c0392b; }
   .gpu-empty { font-size: 13px; color: var(--sub); }
-  /* Sezione GPU: un "chip" animato con inclinazione 3D (CSS perspective, segue il mouse) e anelli
-     di attivita' in stile Activity Ring, sopra la griglia di metriche dettagliate gia' presente.
-     I valori vengono sempre dalla GPU reale rilevata via nvidia-smi: la sezione e' quindi
-     automaticamente diversa per ogni utente/macchina, senza bisogno di dati finti o hardcoded. */
-  .gpu-hero { display: flex; align-items: center; gap: 26px; margin-bottom: 18px; flex-wrap: wrap; }
-  .chip-stage { flex: none; width: 128px; height: 128px; perspective: 700px; }
+  /* Sezione GPU: la "chip tile" ricalca lo stile reale delle card M5/M5 Pro/M5 Max di Apple.com
+     (bordo arrotondato, sfondo nero, bagliore sfumato da un angolo, leggera grana) invece di un
+     tentativo di render 3D letterale - e' il linguaggio visivo che Apple usa davvero per i chip.
+     Qui il bagliore e' pero' vivo: intensita' e colore derivano dai dati reali della GPU (piu'
+     acceso quanto piu' la GPU e' utilizzata, vira all'arancio/rosso alle temperature piu' alte),
+     quindi il risultato e' automaticamente diverso per ogni utente/macchina. */
+  .gpu-hero { display: flex; align-items: center; gap: 32px; margin-bottom: 20px; flex-wrap: wrap; }
+  .chip-stage { flex: none; width: 190px; height: 190px; perspective: 900px; }
   .chip-tilt {
     width: 100%; height: 100%; transform-style: preserve-3d;
-    transform: rotateX(var(--ry, 8deg)) rotateY(var(--rx, -10deg));
+    transform: rotateX(var(--ry, 0deg)) rotateY(var(--rx, 0deg));
     transition: transform .4s cubic-bezier(.22,1,.36,1);
   }
-  .chip-float { width: 100%; height: 100%; animation: chipFloat 6s ease-in-out infinite; }
-  @keyframes chipFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
-  .chip-svg {
-    width: 100%; height: 100%; overflow: visible;
-    filter: drop-shadow(0 16px 28px var(--chip-glow, var(--accent-glow)));
-    transition: filter .5s ease;
+  .chip-float { width: 100%; height: 100%; animation: chipFloat 9s ease-in-out infinite; }
+  @keyframes chipFloat {
+    0%, 100% { transform: rotateX(5deg) rotateY(-8deg) translateY(0); }
+    50% { transform: rotateX(-3deg) rotateY(7deg) translateY(-9px); }
   }
-  .chip-ring-track { fill: none; stroke: var(--track); stroke-width: 6; }
-  .chip-ring-value {
-    fill: none; stroke-width: 6; stroke-linecap: round;
-    transform-origin: 60px 60px; transform: rotate(-90deg);
-    transition: stroke-dashoffset .6s cubic-bezier(.4,0,.2,1);
+  .gpu-chip-tile {
+    width: 100%; height: 100%; border-radius: 36px; position: relative; overflow: hidden;
+    background: #050506; border: 1px solid rgba(255,255,255,.14);
+    box-shadow: 0 26px 60px -22px var(--chip-tile-color, var(--accent-glow)), inset 0 0 0 1px rgba(255,255,255,.03);
+    display: flex; align-items: center; justify-content: center;
+    transition: box-shadow .6s ease;
   }
-  .chip-ring-value.util { stroke: var(--accent); }
-  .chip-ring-value.enc { stroke: var(--accent2); }
-  .chip-ring-value.mem { stroke: #8e8e93; }
-  .chip-body { fill: var(--control-bg); stroke: var(--card-border); stroke-width: 1.5; transition: fill .4s ease, stroke .4s ease; }
-  .chip-pin { stroke: var(--control-border); stroke-width: 2; stroke-linecap: round; transition: stroke .4s ease; }
-  .chip-glyph { fill: var(--sub); transition: fill .4s ease; }
-  .gpu-hero-info { flex: 1 1 220px; min-width: 200px; }
-  .gpu-hero-name { font-size: 16px; font-weight: 700; margin-bottom: 10px; letter-spacing: -.01em; }
-  .gpu-hero-legend { display: flex; flex-direction: column; gap: 7px; }
-  .gpu-hero-legend-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--sub); }
-  .gpu-hero-legend-row .value { color: var(--fg); font-weight: 600; margin-left: auto; }
+  .gpu-chip-tile::before {
+    content: ''; position: absolute; inset: -30%;
+    background: radial-gradient(circle at 22% 82%, var(--chip-tile-color, var(--accent)) 0%, transparent 60%);
+    opacity: var(--chip-intensity, .35);
+    transition: opacity .6s ease;
+  }
+  .gpu-chip-tile::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: .2; mix-blend-mode: overlay;
+  }
+  .gpu-chip-content { position: relative; z-index: 1; text-align: center; padding: 0 18px; }
+  .gpu-chip-brand {
+    font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+    color: rgba(255,255,255,.6); margin-bottom: 8px;
+  }
+  .gpu-chip-model { font-size: 21px; font-weight: 700; letter-spacing: -.01em; color: #fff; line-height: 1.2; }
+  .gpu-hero-info { flex: 1 1 240px; min-width: 220px; }
+  .gpu-hero-name { font-size: 17px; font-weight: 700; margin-bottom: 18px; letter-spacing: -.01em; }
+  .gpu-hero-stats { display: flex; gap: 32px; flex-wrap: wrap; }
+  .gpu-stat-value {
+    font-size: 36px; font-weight: 700; letter-spacing: -.02em; line-height: 1; color: var(--fg);
+    font-variant-numeric: tabular-nums; transition: color .4s ease;
+  }
+  .gpu-stat-label {
+    display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sub);
+    margin-top: 9px; text-transform: uppercase; letter-spacing: .05em;
+  }
   .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
   .legend-dot.util { background: var(--accent); }
   .legend-dot.enc { background: var(--accent2); }
@@ -235,8 +262,8 @@ public static class IndexHtml
   .reveal { opacity: 0; transform: translateY(28px); transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); }
   .reveal.in-view { opacity: 1; transform: none; }
   .card.reveal { animation: none; }
-  .section-heading { margin-bottom: 18px; }
-  .section-heading h2 { font-size: 19px; font-weight: 700; margin: 0 0 4px; letter-spacing: -.01em; }
+  .section-heading { margin-bottom: 22px; }
+  .section-heading h2 { font-size: 22px; font-weight: 700; margin: 0 0 4px; letter-spacing: -.02em; }
   .codec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 16px 0 22px; }
   .codec-card {
     border: 1px solid var(--row-border); border-radius: 14px; padding: 16px 18px;
@@ -512,10 +539,9 @@ function meterClass(percent) {
 }
 
 // Le card GPU vengono create una sola volta per scheda e poi solo aggiornate (mai ricostruite da
-// zero): cosi' le transizioni CSS su anelli e barre interpolano in modo fluido da un valore al
-// successivo a ogni polling, invece di "scattare" perche' gli elementi vengono ricreati ex novo.
+// zero): cosi' le transizioni CSS interpolano in modo fluido da un valore al successivo ad ogni
+// polling, invece di "scattare" perche' gli elementi vengono ricreati ex novo.
 const gpuCards = new Map();
-const RING_RADII = { util: 54, enc: 42, mem: 30 };
 
 function createMetricEl(icon, label) {
   const el = document.createElement('div');
@@ -532,20 +558,21 @@ function updateMetricEl(refs, valueHtml, percent) {
   refs.barEl.style.width = `${Math.min(100, Math.max(0, percent))}%`;
 }
 
-function setRing(circleEl, radius, percent) {
-  const c = 2 * Math.PI * radius;
-  circleEl.style.strokeDasharray = `${c}`;
-  circleEl.style.strokeDashoffset = `${c * (1 - Math.min(100, Math.max(0, percent ?? 0)) / 100)}`;
+// Sotto gli 65 gradi il bagliore della chip tile resta sul colore dell'accento scelto in app;
+// oltre, vira verso l'arancio/rosso per segnalare a colpo d'occhio una temperatura alta - un
+// rinforzo puramente visivo: temperatura, utilizzo ecc. restano comunque leggibili come testo.
+function chipColorFor(tempC) {
+  if (tempC == null) return null;
+  if (tempC >= 80) return '#c0392b';
+  if (tempC >= 65) return '#e67e22';
+  return null;
 }
 
-// Sotto gli 65 gradi l'anello/il chip restano sul colore dell'accento scelto in app; oltre,
-// il bagliore vira verso l'arancio/rosso per segnalare a colpo d'occhio una temperatura alta -
-// un rinforzo puramente visivo: temperatura, utilizzo ecc. restano comunque leggibili come testo.
-function chipGlowFor(tempC) {
-  if (tempC == null) return null;
-  if (tempC >= 80) return 'rgba(192,57,43,.45)';
-  if (tempC >= 65) return 'rgba(230,126,34,.4)';
-  return null;
+// "NVIDIA GeForce RTX 4080" -> { brand: "NVIDIA", model: "GeForce RTX 4080" }; se il nome non
+// inizia per un vendor noto, va tutto nella riga del modello.
+function splitGpuName(name) {
+  const m = /^(NVIDIA)\s+(.+)$/i.exec(name || '');
+  return m ? { brand: m[1].toUpperCase(), model: m[2] } : { brand: 'GPU', model: name || '-' };
 }
 
 function createGpuHero() {
@@ -554,50 +581,41 @@ function createGpuHero() {
   root.innerHTML = `
     <div class="chip-stage">
       <div class="chip-tilt"><div class="chip-float">
-        <svg class="chip-svg" viewBox="0 0 120 120" aria-hidden="true">
-          <circle class="chip-ring-track" cx="60" cy="60" r="54"/>
-          <circle class="chip-ring-value util" cx="60" cy="60" r="54"/>
-          <circle class="chip-ring-track" cx="60" cy="60" r="42"/>
-          <circle class="chip-ring-value enc" cx="60" cy="60" r="42"/>
-          <circle class="chip-ring-track" cx="60" cy="60" r="30"/>
-          <circle class="chip-ring-value mem" cx="60" cy="60" r="30"/>
-          <rect class="chip-body" x="42" y="42" width="36" height="36" rx="9"/>
-          <line class="chip-pin" x1="60" y1="34" x2="60" y2="42"/>
-          <line class="chip-pin" x1="60" y1="78" x2="60" y2="86"/>
-          <line class="chip-pin" x1="34" y1="60" x2="42" y2="60"/>
-          <line class="chip-pin" x1="78" y1="60" x2="86" y2="60"/>
-          <line class="chip-pin" x1="48" y1="36" x2="52" y2="42"/>
-          <line class="chip-pin" x1="72" y1="36" x2="68" y2="42"/>
-          <line class="chip-pin" x1="48" y1="84" x2="52" y2="78"/>
-          <line class="chip-pin" x1="72" y1="84" x2="68" y2="78"/>
-          <text class="chip-glyph" x="60" y="64" text-anchor="middle" font-size="11" font-weight="700" font-family="-apple-system, sans-serif">GPU</text>
-        </svg>
+        <div class="gpu-chip-tile" aria-hidden="true">
+          <div class="gpu-chip-content">
+            <div class="gpu-chip-brand"></div>
+            <div class="gpu-chip-model"></div>
+          </div>
+        </div>
       </div></div>
     </div>
     <div class="gpu-hero-info">
       <div class="gpu-hero-name"></div>
-      <div class="gpu-hero-legend">
-        <div class="gpu-hero-legend-row"><span class="legend-dot util" aria-hidden="true"></span><span>Utilizzo GPU</span><span class="value"></span></div>
-        <div class="gpu-hero-legend-row"><span class="legend-dot enc" aria-hidden="true"></span><span>Encoder</span><span class="value"></span></div>
-        <div class="gpu-hero-legend-row"><span class="legend-dot mem" aria-hidden="true"></span><span>Memoria</span><span class="value"></span></div>
+      <div class="gpu-hero-stats">
+        <div class="gpu-stat">
+          <div class="gpu-stat-value util"></div>
+          <div class="gpu-stat-label"><span class="legend-dot util"></span>Utilizzo</div>
+        </div>
+        <div class="gpu-stat">
+          <div class="gpu-stat-value enc"></div>
+          <div class="gpu-stat-label"><span class="legend-dot enc"></span>Encoder</div>
+        </div>
+        <div class="gpu-stat">
+          <div class="gpu-stat-value mem"></div>
+          <div class="gpu-stat-label"><span class="legend-dot mem"></span>Memoria</div>
+        </div>
       </div>
     </div>`;
-  const legendValues = root.querySelectorAll('.gpu-hero-legend-row .value');
-  const refs = {
+  return {
     root,
     nameEl: root.querySelector('.gpu-hero-name'),
-    svgEl: root.querySelector('.chip-svg'),
-    ringUtil: root.querySelector('.chip-ring-value.util'),
-    ringEnc: root.querySelector('.chip-ring-value.enc'),
-    ringMem: root.querySelector('.chip-ring-value.mem'),
-    legendUtil: legendValues[0],
-    legendEnc: legendValues[1],
-    legendMem: legendValues[2],
+    tileEl: root.querySelector('.gpu-chip-tile'),
+    brandEl: root.querySelector('.gpu-chip-brand'),
+    modelEl: root.querySelector('.gpu-chip-model'),
+    statUtil: root.querySelector('.gpu-stat-value.util'),
+    statEnc: root.querySelector('.gpu-stat-value.enc'),
+    statMem: root.querySelector('.gpu-stat-value.mem'),
   };
-  setRing(refs.ringUtil, RING_RADII.util, 0);
-  setRing(refs.ringEnc, RING_RADII.enc, 0);
-  setRing(refs.ringMem, RING_RADII.mem, 0);
-  return refs;
 }
 
 function createGpuCard() {
@@ -632,15 +650,19 @@ function updateGpuCard(entry, g) {
   entry.hero.nameEl.textContent = g.name;
   const util = g.utilizationGpuPercent, enc = g.encoderUtilizationPercent;
   const memPercent = (g.memoryUsedMb != null && g.memoryTotalMb) ? (100 * g.memoryUsedMb / g.memoryTotalMb) : null;
-  setRing(entry.hero.ringUtil, RING_RADII.util, util);
-  setRing(entry.hero.ringEnc, RING_RADII.enc, enc);
-  setRing(entry.hero.ringMem, RING_RADII.mem, memPercent);
-  entry.hero.legendUtil.textContent = util != null ? util.toFixed(0) + ' %' : '-';
-  entry.hero.legendEnc.textContent = enc != null ? enc.toFixed(0) + ' %' : '-';
-  entry.hero.legendMem.textContent = memPercent != null ? memPercent.toFixed(0) + ' %' : '-';
-  const glow = chipGlowFor(g.temperatureC);
-  if (glow) entry.hero.svgEl.style.setProperty('--chip-glow', glow);
-  else entry.hero.svgEl.style.removeProperty('--chip-glow');
+
+  const { brand, model } = splitGpuName(g.name);
+  entry.hero.brandEl.textContent = brand;
+  entry.hero.modelEl.textContent = model;
+  entry.hero.statUtil.textContent = util != null ? util.toFixed(0) + '%' : '-';
+  entry.hero.statEnc.textContent = enc != null ? enc.toFixed(0) + '%' : '-';
+  entry.hero.statMem.textContent = memPercent != null ? memPercent.toFixed(0) + '%' : '-';
+  // Il bagliore della tile e' vivo: piu' intenso quanto piu' la GPU e' utilizzata, cosi' la card
+  // comunica a colpo d'occhio "sta lavorando" senza dover leggere i numeri.
+  entry.hero.tileEl.style.setProperty('--chip-intensity', (0.22 + 0.5 * Math.min(1, Math.max(0, (util ?? 0) / 100))).toFixed(2));
+  const hotColor = chipColorFor(g.temperatureC);
+  if (hotColor) entry.hero.tileEl.style.setProperty('--chip-tile-color', hotColor);
+  else entry.hero.tileEl.style.removeProperty('--chip-tile-color');
 
   const memText = (g.memoryUsedMb != null && g.memoryTotalMb != null)
     ? `${Math.round(g.memoryUsedMb)} / ${Math.round(g.memoryTotalMb)} MB` : '-';
