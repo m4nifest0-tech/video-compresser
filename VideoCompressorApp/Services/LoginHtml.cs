@@ -63,6 +63,14 @@ public static class LoginHtml
     border-radius: 18px; padding: 30px 28px;
     box-shadow: var(--card-shadow);
   }
+  /* Se backdrop-filter non e' supportato (o disattivato per risparmio energetico), la card
+     resterebbe quasi trasparente sulla foto intera invece che su un vetro sfocato: senza il blur
+     a coprirla, serve un'opacita' molto piu' alta per garantire comunque il contrasto del testo. */
+  @supports not (backdrop-filter: blur(1px)) {
+    .card { background: rgba(255,255,255,.92); }
+    html:not([data-theme="light"]) .card { background: rgba(28,29,35,.92); }
+    html[data-theme="dark"] .card { background: rgba(28,29,35,.92); }
+  }
   .logo { text-align: center; font-size: 32px; margin-bottom: 6px; }
   h1 {
     font-size: 18px; text-align: center; margin: 0 0 24px; letter-spacing: -.02em;
