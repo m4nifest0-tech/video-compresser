@@ -191,7 +191,7 @@ public static class IndexHtml
   .gpu-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
   .gpu-metric {
     background: var(--control-bg); border-radius: 14px; padding: 12px 14px;
-    transition: background-color .4s ease;
+    transition: background-color .4s ease, transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease;
   }
   .gpu-metric label { font-size: 12px; color: var(--sub); display: block; margin-bottom: 4px; }
   .gpu-metric .value { font-size: 14px; font-weight: 600; }
@@ -200,55 +200,101 @@ public static class IndexHtml
   .meter.warn > div { background: #e67e22; }
   .meter.hot > div { background: #c0392b; }
   .gpu-empty { font-size: 13px; color: var(--sub); }
-  /* Sezione GPU: la "chip tile" ricalca lo stile reale delle card M5/M5 Pro/M5 Max di Apple.com
-     (bordo arrotondato, sfondo nero, bagliore sfumato da un angolo, leggera grana) invece di un
-     tentativo di render 3D letterale - e' il linguaggio visivo che Apple usa davvero per i chip.
-     Qui il bagliore e' pero' vivo: intensita' e colore derivano dai dati reali della GPU (piu'
-     acceso quanto piu' la GPU e' utilizzata, vira all'arancio/rosso alle temperature piu' alte),
-     quindi il risultato e' automaticamente diverso per ogni utente/macchina. */
-  .gpu-hero { display: flex; align-items: center; gap: 32px; margin-bottom: 20px; flex-wrap: wrap; }
-  .chip-stage { flex: none; width: 190px; height: 190px; perspective: 900px; }
+  /* Sezione GPU: un modellino della scheda video vera e propria (shroud, ventola, bordo PCIe,
+     staffa I/O), assemblato con facce CSS 3D reali (transform-style: preserve-3d) invece di un
+     trucco 2D - ruota davvero nello spazio. La ventola gira alla velocita' reale della GPU (si
+     ferma se il sensore riporta 0%, come una scheda vera a riposo) e la barra luminosa sul bordo
+     si accende in base all'utilizzo, virando all'arancio/rosso alle temperature piu' alte: il
+     risultato e' quindi sempre diverso, e vivo, per ogni utente/macchina. */
+  .gpu-hero { display: flex; align-items: center; gap: 36px; margin-bottom: 20px; flex-wrap: wrap; }
+  .chip-stage { flex: none; width: 230px; height: 160px; perspective: 900px; }
   .chip-tilt {
     width: 100%; height: 100%; transform-style: preserve-3d;
     transform: rotateX(var(--ry, 0deg)) rotateY(var(--rx, 0deg));
     transition: transform .4s cubic-bezier(.22,1,.36,1);
   }
-  .chip-float { width: 100%; height: 100%; animation: chipFloat 9s ease-in-out infinite; }
-  @keyframes chipFloat {
-    0%, 100% { transform: rotateX(5deg) rotateY(-8deg) translateY(0); }
-    50% { transform: rotateX(-3deg) rotateY(7deg) translateY(-9px); }
-  }
-  .gpu-chip-tile {
-    width: 100%; height: 100%; border-radius: 36px; position: relative; overflow: hidden;
-    background: #050506; border: 1px solid rgba(255,255,255,.14);
-    box-shadow: 0 26px 60px -22px var(--chip-tile-color, var(--accent-glow)), inset 0 0 0 1px rgba(255,255,255,.03);
+  .chip-float {
+    width: 100%; height: 100%; transform-style: preserve-3d;
     display: flex; align-items: center; justify-content: center;
-    transition: box-shadow .6s ease;
+    animation: chipFloat 9s ease-in-out infinite;
   }
-  .gpu-chip-tile::before {
-    content: ''; position: absolute; inset: -30%;
-    background: radial-gradient(circle at 22% 82%, var(--chip-tile-color, var(--accent)) 0%, transparent 60%);
+  @keyframes chipFloat {
+    0%, 100% { transform: rotateX(14deg) rotateY(-30deg) translateY(0); }
+    50% { transform: rotateX(11deg) rotateY(-24deg) translateY(-8px); }
+  }
+  /* Costruzione del box 3D: ogni faccia e' centrata nel genitore (position:absolute, top/left 50%,
+     margine negativo pari a meta' delle proprie dimensioni) e poi ruotata e allontanata lungo Z di
+     meta' della terza dimensione del box (W=172, H=50, D=66) - la formula standard per assemblare
+     un cuboide in CSS 3D. Servono solo le 3 facce visibili dall'angolazione della card (fronte,
+     sopra, testata): l'oggetto non ruota mai abbastanza da scoprire le facce mancanti. */
+  .gpu-model {
+    position: relative; width: 172px; height: 50px; flex: none;
+    transform-style: preserve-3d;
+    filter: drop-shadow(0 22px 26px rgba(0,0,0,.45)) drop-shadow(0 0 26px var(--chip-tile-color, var(--accent-glow)));
+    transition: filter .6s ease;
+  }
+  .gpu-face { position: absolute; top: 50%; left: 50%; backface-visibility: hidden; }
+  .gpu-face-front {
+    width: 172px; height: 50px; margin: -25px 0 0 -86px;
+    border-radius: 7px;
+    background: linear-gradient(155deg, #35363c 0%, #17181b 55%, #0a0a0c 100%);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.07);
+    transform: translateZ(33px);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .gpu-face-top {
+    width: 172px; height: 66px; margin: -33px 0 0 -86px;
+    background: repeating-linear-gradient(90deg, #303136 0 3px, #101113 3px 8px);
+    transform: rotateX(90deg) translateZ(25px);
+    border-radius: 7px 7px 0 0;
+  }
+  .gpu-face-end {
+    width: 66px; height: 50px; margin: -25px 0 0 -33px;
+    background: linear-gradient(90deg, #3d3e44, #1a1b1e);
+    transform: rotateY(90deg) translateZ(86px);
+    border-radius: 0 7px 7px 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  }
+  .gpu-port { width: 55%; height: 5px; background: #060607; border-radius: 1px; box-shadow: inset 0 0 1px rgba(255,255,255,.18); }
+  .gpu-fan { position: relative; width: 36px; height: 36px; border-radius: 50%; }
+  .gpu-fan-ring {
+    position: absolute; inset: 0; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #3f4046, #08090a 72%);
+    box-shadow: inset 0 0 5px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.05);
+  }
+  .gpu-fan-blades {
+    position: absolute; inset: 3px; border-radius: 50%;
+    background: conic-gradient(#1c1d20 0deg 12deg, transparent 12deg 45deg,
+      #1c1d20 45deg 57deg, transparent 57deg 90deg, #1c1d20 90deg 102deg, transparent 102deg 135deg,
+      #1c1d20 135deg 147deg, transparent 147deg 180deg, #1c1d20 180deg 192deg, transparent 192deg 225deg,
+      #1c1d20 225deg 237deg, transparent 237deg 270deg, #1c1d20 270deg 282deg, transparent 282deg 315deg,
+      #1c1d20 315deg 327deg, transparent 327deg 360deg);
+    animation: fanSpin linear infinite;
+    animation-duration: var(--fan-duration, 3s);
+    animation-play-state: var(--fan-state, paused);
+  }
+  @keyframes fanSpin { to { transform: rotate(360deg); } }
+  .gpu-fan-hub { position: absolute; inset: 12px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #55565d, #0d0e10); }
+  .gpu-glow-strip {
+    position: absolute; left: 10%; right: 10%; bottom: 5px; height: 3px; border-radius: 2px;
+    background: var(--chip-tile-color, var(--accent));
+    box-shadow: 0 0 10px 2px var(--chip-tile-color, var(--accent-glow));
     opacity: var(--chip-intensity, .35);
-    transition: opacity .6s ease;
+    transition: opacity .6s ease, background-color .6s ease;
   }
-  .gpu-chip-tile::after {
-    content: ''; position: absolute; inset: 0; pointer-events: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    opacity: .2; mix-blend-mode: overlay;
-  }
-  .gpu-chip-content { position: relative; z-index: 1; text-align: center; padding: 0 18px; }
-  .gpu-chip-brand {
-    font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
-    color: rgba(255,255,255,.6); margin-bottom: 8px;
-  }
-  .gpu-chip-model { font-size: 21px; font-weight: 700; letter-spacing: -.01em; color: #fff; line-height: 1.2; }
   .gpu-hero-info { flex: 1 1 240px; min-width: 220px; }
   .gpu-hero-name { font-size: 17px; font-weight: 700; margin-bottom: 18px; letter-spacing: -.01em; }
-  .gpu-hero-stats { display: flex; gap: 32px; flex-wrap: wrap; }
-  .gpu-stat-value {
-    font-size: 36px; font-weight: 700; letter-spacing: -.02em; line-height: 1; color: var(--fg);
-    font-variant-numeric: tabular-nums; transition: color .4s ease;
+  .gpu-hero-stats { display: flex; gap: 8px; flex-wrap: wrap; margin: -6px -10px; }
+  .gpu-stat {
+    padding: 6px 10px; border-radius: 12px; cursor: default;
+    transition: background-color .18s ease, transform .18s cubic-bezier(.34,1.56,.64,1);
   }
+  .gpu-stat:hover { background: var(--control-bg); transform: translateY(-2px); }
+  .gpu-stat-value {
+    display: inline-block; font-size: 36px; font-weight: 700; letter-spacing: -.02em; line-height: 1; color: var(--fg);
+    font-variant-numeric: tabular-nums; transition: color .4s ease, transform .18s cubic-bezier(.34,1.56,.64,1);
+  }
+  .gpu-stat:hover .gpu-stat-value { transform: scale(1.08); }
   .gpu-stat-label {
     display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sub);
     margin-top: 9px; text-transform: uppercase; letter-spacing: .05em;
@@ -257,6 +303,16 @@ public static class IndexHtml
   .legend-dot.util { background: var(--accent); }
   .legend-dot.enc { background: var(--accent2); }
   .legend-dot.mem { background: #8e8e93; }
+  /* Piccole animazioni al passaggio del mouse sulle metriche dettagliate (temperatura, memoria...):
+     la tile si solleva leggermente e l'icona ha un piccolo "rimbalzo", per dare un riscontro
+     immediato e piacevole senza essere invasivo. */
+  .gpu-metric:hover {
+    background: var(--control-hover); transform: translateY(-3px);
+    box-shadow: 0 12px 22px -12px rgba(0,0,0,.4);
+  }
+  .gpu-metric:hover .meter > div { filter: brightness(1.15); }
+  .gpu-metric label span { display: inline-block; transition: transform .25s cubic-bezier(.34,1.56,.64,1); }
+  .gpu-metric:hover label span { transform: scale(1.25) rotate(-6deg); }
   /* Sezione informativa sotto l'interfaccia: appare quando si scorre fino a lei (Intersection
      Observer), in stile pagine prodotto Apple, invece di comparire tutta insieme al caricamento. */
   .reveal { opacity: 0; transform: translateY(28px); transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); }
@@ -568,23 +624,24 @@ function chipColorFor(tempC) {
   return null;
 }
 
-// "NVIDIA GeForce RTX 4080" -> { brand: "NVIDIA", model: "GeForce RTX 4080" }; se il nome non
-// inizia per un vendor noto, va tutto nella riga del modello.
-function splitGpuName(name) {
-  const m = /^(NVIDIA)\s+(.+)$/i.exec(name || '');
-  return m ? { brand: m[1].toUpperCase(), model: m[2] } : { brand: 'GPU', model: name || '-' };
-}
-
 function createGpuHero() {
   const root = document.createElement('div');
   root.className = 'gpu-hero';
   root.innerHTML = `
     <div class="chip-stage">
       <div class="chip-tilt"><div class="chip-float">
-        <div class="gpu-chip-tile" aria-hidden="true">
-          <div class="gpu-chip-content">
-            <div class="gpu-chip-brand"></div>
-            <div class="gpu-chip-model"></div>
+        <div class="gpu-model" aria-hidden="true">
+          <div class="gpu-face gpu-face-top"></div>
+          <div class="gpu-face gpu-face-end">
+            <div class="gpu-port"></div><div class="gpu-port"></div><div class="gpu-port"></div>
+          </div>
+          <div class="gpu-face gpu-face-front">
+            <div class="gpu-fan">
+              <div class="gpu-fan-ring"></div>
+              <div class="gpu-fan-blades"></div>
+              <div class="gpu-fan-hub"></div>
+            </div>
+            <div class="gpu-glow-strip"></div>
           </div>
         </div>
       </div></div>
@@ -609,9 +666,7 @@ function createGpuHero() {
   return {
     root,
     nameEl: root.querySelector('.gpu-hero-name'),
-    tileEl: root.querySelector('.gpu-chip-tile'),
-    brandEl: root.querySelector('.gpu-chip-brand'),
-    modelEl: root.querySelector('.gpu-chip-model'),
+    modelEl: root.querySelector('.gpu-model'),
     statUtil: root.querySelector('.gpu-stat-value.util'),
     statEnc: root.querySelector('.gpu-stat-value.enc'),
     statMem: root.querySelector('.gpu-stat-value.mem'),
@@ -651,18 +706,24 @@ function updateGpuCard(entry, g) {
   const util = g.utilizationGpuPercent, enc = g.encoderUtilizationPercent;
   const memPercent = (g.memoryUsedMb != null && g.memoryTotalMb) ? (100 * g.memoryUsedMb / g.memoryTotalMb) : null;
 
-  const { brand, model } = splitGpuName(g.name);
-  entry.hero.brandEl.textContent = brand;
-  entry.hero.modelEl.textContent = model;
   entry.hero.statUtil.textContent = util != null ? util.toFixed(0) + '%' : '-';
   entry.hero.statEnc.textContent = enc != null ? enc.toFixed(0) + '%' : '-';
   entry.hero.statMem.textContent = memPercent != null ? memPercent.toFixed(0) + '%' : '-';
-  // Il bagliore della tile e' vivo: piu' intenso quanto piu' la GPU e' utilizzata, cosi' la card
+  // Il bagliore sotto il modellino e' vivo: piu' intenso quanto piu' la GPU e' utilizzata, cosi'
   // comunica a colpo d'occhio "sta lavorando" senza dover leggere i numeri.
-  entry.hero.tileEl.style.setProperty('--chip-intensity', (0.22 + 0.5 * Math.min(1, Math.max(0, (util ?? 0) / 100))).toFixed(2));
+  entry.hero.modelEl.style.setProperty('--chip-intensity', (0.22 + 0.5 * Math.min(1, Math.max(0, (util ?? 0) / 100))).toFixed(2));
   const hotColor = chipColorFor(g.temperatureC);
-  if (hotColor) entry.hero.tileEl.style.setProperty('--chip-tile-color', hotColor);
-  else entry.hero.tileEl.style.removeProperty('--chip-tile-color');
+  if (hotColor) entry.hero.modelEl.style.setProperty('--chip-tile-color', hotColor);
+  else entry.hero.modelEl.style.removeProperty('--chip-tile-color');
+  // La ventola gira alla velocita' reale della scheda: si ferma se il sensore riporta 0% (o non
+  // la espone), come farebbe una scheda vera a riposo, invece di girare a vuoto senza motivo.
+  const fanPercent = g.fanSpeedPercent;
+  if (fanPercent > 0) {
+    entry.hero.modelEl.style.setProperty('--fan-state', 'running');
+    entry.hero.modelEl.style.setProperty('--fan-duration', `${(4 - 3.2 * Math.min(1, fanPercent / 100)).toFixed(2)}s`);
+  } else {
+    entry.hero.modelEl.style.setProperty('--fan-state', 'paused');
+  }
 
   const memText = (g.memoryUsedMb != null && g.memoryTotalMb != null)
     ? `${Math.round(g.memoryUsedMb)} / ${Math.round(g.memoryTotalMb)} MB` : '-';
