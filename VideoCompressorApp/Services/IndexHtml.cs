@@ -180,11 +180,9 @@ public static class IndexHtml
   #overallProgress { width: 100%; height: 18px; margin-bottom: 6px; }
   #statusLine { display: flex; justify-content: space-between; font-size: 12px; color: var(--sub); }
   .actions button, .actions a.btn { font-size: 12px; padding: 4px 10px; margin-right: 4px; }
-  .gpu-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
-  .gpu-card { border: 1px solid var(--row-border); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px;
+  .gpu-card { border: 1px solid var(--row-border); border-radius: 12px; padding: 14px 16px; margin-bottom: 8px;
     background: var(--gpu-card-bg); transition: background-color .4s ease, border-color .4s ease; }
   .gpu-card:last-child { margin-bottom: 0; }
-  .gpu-name { font-size: 12px; font-weight: 600; margin-bottom: 8px; }
   .gpu-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
   .gpu-metric label { font-size: 12px; color: var(--sub); display: block; margin-bottom: 3px; }
   .gpu-metric .value { font-size: 13px; font-weight: 600; }
@@ -193,6 +191,75 @@ public static class IndexHtml
   .meter.warn > div { background: #e67e22; }
   .meter.hot > div { background: #c0392b; }
   .gpu-empty { font-size: 13px; color: var(--sub); }
+  /* Sezione GPU: un "chip" animato con inclinazione 3D (CSS perspective, segue il mouse) e anelli
+     di attivita' in stile Activity Ring, sopra la griglia di metriche dettagliate gia' presente.
+     I valori vengono sempre dalla GPU reale rilevata via nvidia-smi: la sezione e' quindi
+     automaticamente diversa per ogni utente/macchina, senza bisogno di dati finti o hardcoded. */
+  .gpu-hero { display: flex; align-items: center; gap: 26px; margin-bottom: 18px; flex-wrap: wrap; }
+  .chip-stage { flex: none; width: 128px; height: 128px; perspective: 700px; }
+  .chip-tilt {
+    width: 100%; height: 100%; transform-style: preserve-3d;
+    transform: rotateX(var(--ry, 8deg)) rotateY(var(--rx, -10deg));
+    transition: transform .4s cubic-bezier(.22,1,.36,1);
+  }
+  .chip-float { width: 100%; height: 100%; animation: chipFloat 6s ease-in-out infinite; }
+  @keyframes chipFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+  .chip-svg {
+    width: 100%; height: 100%; overflow: visible;
+    filter: drop-shadow(0 16px 28px var(--chip-glow, var(--accent-glow)));
+    transition: filter .5s ease;
+  }
+  .chip-ring-track { fill: none; stroke: var(--track); stroke-width: 6; }
+  .chip-ring-value {
+    fill: none; stroke-width: 6; stroke-linecap: round;
+    transform-origin: 60px 60px; transform: rotate(-90deg);
+    transition: stroke-dashoffset .6s cubic-bezier(.4,0,.2,1);
+  }
+  .chip-ring-value.util { stroke: var(--accent); }
+  .chip-ring-value.enc { stroke: var(--accent2); }
+  .chip-ring-value.mem { stroke: #8e8e93; }
+  .chip-body { fill: var(--control-bg); stroke: var(--card-border); stroke-width: 1.5; transition: fill .4s ease, stroke .4s ease; }
+  .chip-pin { stroke: var(--control-border); stroke-width: 2; stroke-linecap: round; transition: stroke .4s ease; }
+  .chip-glyph { fill: var(--sub); transition: fill .4s ease; }
+  .gpu-hero-info { flex: 1 1 220px; min-width: 200px; }
+  .gpu-hero-name { font-size: 16px; font-weight: 700; margin-bottom: 10px; letter-spacing: -.01em; }
+  .gpu-hero-legend { display: flex; flex-direction: column; gap: 7px; }
+  .gpu-hero-legend-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--sub); }
+  .gpu-hero-legend-row .value { color: var(--fg); font-weight: 600; margin-left: auto; }
+  .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .legend-dot.util { background: var(--accent); }
+  .legend-dot.enc { background: var(--accent2); }
+  .legend-dot.mem { background: #8e8e93; }
+  /* Sezione informativa sotto l'interfaccia: appare quando si scorre fino a lei (Intersection
+     Observer), in stile pagine prodotto Apple, invece di comparire tutta insieme al caricamento. */
+  .reveal { opacity: 0; transform: translateY(28px); transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); }
+  .reveal.in-view { opacity: 1; transform: none; }
+  .card.reveal { animation: none; }
+  .section-heading { margin-bottom: 18px; }
+  .section-heading h2 { font-size: 19px; font-weight: 700; margin: 0 0 4px; letter-spacing: -.01em; }
+  .codec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 16px 0 22px; }
+  .codec-card {
+    border: 1px solid var(--row-border); border-radius: 14px; padding: 16px 18px;
+    background: var(--gpu-card-bg); transition: background-color .4s ease, border-color .4s ease, transform .2s ease, opacity .6s cubic-bezier(.16,1,.3,1);
+    opacity: 0; transform: translateY(16px);
+  }
+  .reveal.in-view .codec-card { opacity: 1; transform: none; }
+  .reveal.in-view .codec-card:nth-child(1) { transition-delay: .05s; }
+  .reveal.in-view .codec-card:nth-child(2) { transition-delay: .12s; }
+  .reveal.in-view .codec-card:nth-child(3) { transition-delay: .19s; }
+  .codec-card:hover { transform: translateY(-2px); }
+  .codec-badge {
+    display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .02em;
+    padding: 3px 9px; border-radius: 980px; background: var(--control-bg); color: var(--sub); margin-bottom: 10px;
+  }
+  .codec-card h3 { font-size: 14px; font-weight: 600; margin: 0 0 6px; }
+  .codec-card p { font-size: 13px; color: var(--sub); margin: 0; line-height: 1.5; }
+  .level-explainer-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--sub); margin-bottom: 9px; }
+  .level-track { position: relative; height: 6px; border-radius: 3px; background: var(--track); }
+  .level-track-fill { position: absolute; inset: 0; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .level-dots { display: flex; justify-content: space-between; margin-top: -9px; padding: 0 1px; }
+  .level-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 2px solid var(--card-bg); }
+  .level-explainer p { font-size: 13px; color: var(--sub); margin: 12px 0 0; line-height: 1.5; }
   /* Notifica non bloccante per errori, al posto di alert(): l'alert nativo del browser
      rompe la coerenza visiva con le card in vetro smerigliato dell'interfaccia. */
   #toast {
@@ -282,7 +349,10 @@ public static class IndexHtml
   </div>
 
   <div class="card">
-    <div class="gpu-title">GPU</div>
+    <div class="section-heading">
+      <h2>La tua GPU</h2>
+      <div class="sub">Monitoraggio in tempo reale, mentre la GPU comprime i tuoi video.</div>
+    </div>
     <div id="gpuBody"><div class="gpu-empty">Lettura in corso...</div></div>
   </div>
 
@@ -346,6 +416,39 @@ public static class IndexHtml
       <tbody id="itemsBody"></tbody>
     </table>
   </div>
+
+  <div class="card guide-card reveal">
+    <div class="section-heading">
+      <h2>Guida rapida</h2>
+      <div class="sub">Codec ed encoder spiegati in due minuti, per scegliere senza pensieri.</div>
+    </div>
+    <p class="sub" style="margin:0 0 4px">Ogni video viene codificato dalla GPU NVIDIA (il blocco dedicato NVENC), molto piu' veloce della CPU e che lascia il processore libero per il resto. Il codec scelto determina invece quanto si comprime il file e con chi e' compatibile:</p>
+    <div class="codec-grid">
+      <div class="codec-card">
+        <div class="codec-badge">H.264</div>
+        <h3>Compatibilita' universale</h3>
+        <p>Il codec piu' diffuso: si apre su qualsiasi telefono, TV, social o editor, anche datato. La scelta piu' sicura se non sai quale usare o devi condividere il file.</p>
+      </div>
+      <div class="codec-card">
+        <div class="codec-badge">H.265 / HEVC</div>
+        <h3>File piu' leggeri</h3>
+        <p>A parita' di qualita' pesa circa il 40-50% in meno di H.264. Per riprodurlo serve pero' un dispositivo o player relativamente recente.</p>
+      </div>
+      <div class="codec-card">
+        <div class="codec-badge">AV1</div>
+        <h3>Il piu' efficiente</h3>
+        <p>Comprime ancora meglio di HEVC a parita' di qualita', ma la codifica hardware richiede una GPU NVIDIA RTX serie 40 o successiva.</p>
+      </div>
+    </div>
+    <div class="level-explainer">
+      <div class="level-explainer-row"><span>Qualita' massima</span><span>Compressione massima</span></div>
+      <div class="level-track"><div class="level-track-fill"></div></div>
+      <div class="level-dots" aria-hidden="true">
+        <span class="level-dot"></span><span class="level-dot"></span><span class="level-dot"></span><span class="level-dot"></span><span class="level-dot"></span>
+      </div>
+      <p>Il livello di compressione regola il compromesso tra qualita' e peso del file: valori piu' bassi mantengono piu' dettaglio (file piu' grandi), valori piu' alti riducono il peso a scapito di un po' di qualita'. "Bilanciato" va bene per la maggior parte dei video.</p>
+    </div>
+  </div>
 </div>
 
 <div id="toast" role="alert" aria-live="assertive"></div>
@@ -408,49 +511,208 @@ function meterClass(percent) {
   return 'meter';
 }
 
-function metric(icon, label, valueText, percent) {
-  const bar = percent == null ? '' : `<div class="${meterClass(percent)}"><div style="width:${Math.min(100, Math.max(0, percent))}%"></div></div>`;
-  return `<div class="gpu-metric"><label><span aria-hidden="true">${icon}</span> ${label}</label><div class="value">${valueText}</div>${bar}</div>`;
+// Le card GPU vengono create una sola volta per scheda e poi solo aggiornate (mai ricostruite da
+// zero): cosi' le transizioni CSS su anelli e barre interpolano in modo fluido da un valore al
+// successivo a ogni polling, invece di "scattare" perche' gli elementi vengono ricreati ex novo.
+const gpuCards = new Map();
+const RING_RADII = { util: 54, enc: 42, mem: 30 };
+
+function createMetricEl(icon, label) {
+  const el = document.createElement('div');
+  el.className = 'gpu-metric';
+  el.innerHTML = `<label><span aria-hidden="true">${icon}</span> ${label}</label><div class="value"></div><div class="meter" hidden><div></div></div>`;
+  return { el, valueEl: el.querySelector('.value'), meterEl: el.querySelector('.meter'), barEl: el.querySelector('.meter > div') };
+}
+
+function updateMetricEl(refs, valueHtml, percent) {
+  refs.valueEl.innerHTML = valueHtml;
+  if (percent == null) { refs.meterEl.hidden = true; return; }
+  refs.meterEl.hidden = false;
+  refs.meterEl.className = meterClass(percent);
+  refs.barEl.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+}
+
+function setRing(circleEl, radius, percent) {
+  const c = 2 * Math.PI * radius;
+  circleEl.style.strokeDasharray = `${c}`;
+  circleEl.style.strokeDashoffset = `${c * (1 - Math.min(100, Math.max(0, percent ?? 0)) / 100)}`;
+}
+
+// Sotto gli 65 gradi l'anello/il chip restano sul colore dell'accento scelto in app; oltre,
+// il bagliore vira verso l'arancio/rosso per segnalare a colpo d'occhio una temperatura alta -
+// un rinforzo puramente visivo: temperatura, utilizzo ecc. restano comunque leggibili come testo.
+function chipGlowFor(tempC) {
+  if (tempC == null) return null;
+  if (tempC >= 80) return 'rgba(192,57,43,.45)';
+  if (tempC >= 65) return 'rgba(230,126,34,.4)';
+  return null;
+}
+
+function createGpuHero() {
+  const root = document.createElement('div');
+  root.className = 'gpu-hero';
+  root.innerHTML = `
+    <div class="chip-stage">
+      <div class="chip-tilt"><div class="chip-float">
+        <svg class="chip-svg" viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="chip-ring-track" cx="60" cy="60" r="54"/>
+          <circle class="chip-ring-value util" cx="60" cy="60" r="54"/>
+          <circle class="chip-ring-track" cx="60" cy="60" r="42"/>
+          <circle class="chip-ring-value enc" cx="60" cy="60" r="42"/>
+          <circle class="chip-ring-track" cx="60" cy="60" r="30"/>
+          <circle class="chip-ring-value mem" cx="60" cy="60" r="30"/>
+          <rect class="chip-body" x="42" y="42" width="36" height="36" rx="9"/>
+          <line class="chip-pin" x1="60" y1="34" x2="60" y2="42"/>
+          <line class="chip-pin" x1="60" y1="78" x2="60" y2="86"/>
+          <line class="chip-pin" x1="34" y1="60" x2="42" y2="60"/>
+          <line class="chip-pin" x1="78" y1="60" x2="86" y2="60"/>
+          <line class="chip-pin" x1="48" y1="36" x2="52" y2="42"/>
+          <line class="chip-pin" x1="72" y1="36" x2="68" y2="42"/>
+          <line class="chip-pin" x1="48" y1="84" x2="52" y2="78"/>
+          <line class="chip-pin" x1="72" y1="84" x2="68" y2="78"/>
+          <text class="chip-glyph" x="60" y="64" text-anchor="middle" font-size="11" font-weight="700" font-family="-apple-system, sans-serif">GPU</text>
+        </svg>
+      </div></div>
+    </div>
+    <div class="gpu-hero-info">
+      <div class="gpu-hero-name"></div>
+      <div class="gpu-hero-legend">
+        <div class="gpu-hero-legend-row"><span class="legend-dot util" aria-hidden="true"></span><span>Utilizzo GPU</span><span class="value"></span></div>
+        <div class="gpu-hero-legend-row"><span class="legend-dot enc" aria-hidden="true"></span><span>Encoder</span><span class="value"></span></div>
+        <div class="gpu-hero-legend-row"><span class="legend-dot mem" aria-hidden="true"></span><span>Memoria</span><span class="value"></span></div>
+      </div>
+    </div>`;
+  const legendValues = root.querySelectorAll('.gpu-hero-legend-row .value');
+  const refs = {
+    root,
+    nameEl: root.querySelector('.gpu-hero-name'),
+    svgEl: root.querySelector('.chip-svg'),
+    ringUtil: root.querySelector('.chip-ring-value.util'),
+    ringEnc: root.querySelector('.chip-ring-value.enc'),
+    ringMem: root.querySelector('.chip-ring-value.mem'),
+    legendUtil: legendValues[0],
+    legendEnc: legendValues[1],
+    legendMem: legendValues[2],
+  };
+  setRing(refs.ringUtil, RING_RADII.util, 0);
+  setRing(refs.ringEnc, RING_RADII.enc, 0);
+  setRing(refs.ringMem, RING_RADII.mem, 0);
+  return refs;
+}
+
+function createGpuCard() {
+  const root = document.createElement('div');
+  root.className = 'gpu-card';
+  const hero = createGpuHero();
+  root.appendChild(hero.root);
+  const metricsWrap = document.createElement('div');
+  metricsWrap.className = 'gpu-metrics';
+  root.appendChild(metricsWrap);
+  const specs = [
+    ['temperature', '&#127777;&#65039;', 'Temperatura'],
+    ['util', '&#9881;&#65039;', 'Utilizzo GPU'],
+    ['encoder', '&#127909;', 'Encoder (NVENC)'],
+    ['encoderFps', '&#127916;', 'FPS encoder'],
+    ['decoder', '&#128260;', 'Decoder (NVDEC)'],
+    ['utilMem', '&#128202;', 'Utilizzo memoria'],
+    ['mem', '&#128190;', 'Memoria'],
+    ['fan', '&#127744;', 'Ventola'],
+    ['power', '&#9889;', 'Potenza'],
+  ];
+  const metrics = {};
+  for (const [key, icon, label] of specs) {
+    const m = createMetricEl(icon, label);
+    metricsWrap.appendChild(m.el);
+    metrics[key] = m;
+  }
+  return { root, hero, metrics };
+}
+
+function updateGpuCard(entry, g) {
+  entry.hero.nameEl.textContent = g.name;
+  const util = g.utilizationGpuPercent, enc = g.encoderUtilizationPercent;
+  const memPercent = (g.memoryUsedMb != null && g.memoryTotalMb) ? (100 * g.memoryUsedMb / g.memoryTotalMb) : null;
+  setRing(entry.hero.ringUtil, RING_RADII.util, util);
+  setRing(entry.hero.ringEnc, RING_RADII.enc, enc);
+  setRing(entry.hero.ringMem, RING_RADII.mem, memPercent);
+  entry.hero.legendUtil.textContent = util != null ? util.toFixed(0) + ' %' : '-';
+  entry.hero.legendEnc.textContent = enc != null ? enc.toFixed(0) + ' %' : '-';
+  entry.hero.legendMem.textContent = memPercent != null ? memPercent.toFixed(0) + ' %' : '-';
+  const glow = chipGlowFor(g.temperatureC);
+  if (glow) entry.hero.svgEl.style.setProperty('--chip-glow', glow);
+  else entry.hero.svgEl.style.removeProperty('--chip-glow');
+
+  const memText = (g.memoryUsedMb != null && g.memoryTotalMb != null)
+    ? `${Math.round(g.memoryUsedMb)} / ${Math.round(g.memoryTotalMb)} MB` : '-';
+  // Molte GPU (anche professionali) non espongono il consumo istantaneo (power.draw) via
+  // nvidia-smi ma riportano comunque il limite di potenza (power.limit): scartarlo insieme al
+  // consumo mostrava solo "-" anche quando l'unica informazione mancante era il consumo live.
+  const powerText = (g.powerDrawW == null && g.powerLimitW == null) ? '-'
+    : `${g.powerDrawW != null ? g.powerDrawW.toFixed(0) + ' W' : '-'}${g.powerLimitW != null ? ' / ' + g.powerLimitW.toFixed(0) + ' W' : ''}`;
+  // utilization.gpu riflette il motore 3D/compute generale, non il blocco NVENC/NVDEC dedicato
+  // che questa app usa per la codifica: utilizzo/fps dell'encoder sono l'indicatore giusto per
+  // capire se la GPU sta davvero lavorando su una compressione.
+  const encoderFpsText = (g.encoderSessionCount && g.encoderSessionCount > 0)
+    ? `${(g.encoderAvgFps ?? 0).toFixed(0)} fps &middot; ${g.encoderSessionCount.toFixed(0)} sessione/i` : '-';
+
+  updateMetricEl(entry.metrics.temperature, g.temperatureC != null ? g.temperatureC.toFixed(0) + ' &deg;C' : '-', g.temperatureC != null ? (g.temperatureC / 90 * 100) : null);
+  updateMetricEl(entry.metrics.util, util != null ? util.toFixed(0) + ' %' : '-', util);
+  updateMetricEl(entry.metrics.encoder, enc != null ? enc.toFixed(0) + ' %' : '-', enc);
+  updateMetricEl(entry.metrics.encoderFps, encoderFpsText, null);
+  updateMetricEl(entry.metrics.decoder, g.decoderUtilizationPercent != null ? g.decoderUtilizationPercent.toFixed(0) + ' %' : '-', g.decoderUtilizationPercent);
+  updateMetricEl(entry.metrics.utilMem, g.utilizationMemPercent != null ? g.utilizationMemPercent.toFixed(0) + ' %' : '-', g.utilizationMemPercent);
+  updateMetricEl(entry.metrics.mem, memText, memPercent);
+  updateMetricEl(entry.metrics.fan, g.fanSpeedPercent != null ? g.fanSpeedPercent.toFixed(0) + ' %' : '-', g.fanSpeedPercent);
+  updateMetricEl(entry.metrics.power, powerText, null);
 }
 
 function renderGpu(gpus) {
   const body = document.getElementById('gpuBody');
   if (!gpus || gpus.length === 0) {
+    gpuCards.clear();
     body.innerHTML = '<div class="gpu-empty">GPU NVIDIA non rilevata (nvidia-smi non disponibile).</div>';
     return;
   }
+  if (body.querySelector('.gpu-empty')) body.innerHTML = '';
 
-  body.innerHTML = gpus.map(g => {
-    const memPercent = (g.memoryUsedMb != null && g.memoryTotalMb) ? (100 * g.memoryUsedMb / g.memoryTotalMb) : null;
-    const memText = (g.memoryUsedMb != null && g.memoryTotalMb != null)
-      ? `${Math.round(g.memoryUsedMb)} / ${Math.round(g.memoryTotalMb)} MB` : '-';
-    // Molte GPU (anche professionali) non espongono il consumo istantaneo (power.draw) via
-    // nvidia-smi ma riportano comunque il limite di potenza (power.limit): scartarlo insieme al
-    // consumo mostrava solo "-" anche quando l'unica informazione mancante era il consumo live.
-    const powerText = (g.powerDrawW == null && g.powerLimitW == null) ? '-'
-      : `${g.powerDrawW != null ? g.powerDrawW.toFixed(0) + ' W' : '-'}${g.powerLimitW != null ? ' / ' + g.powerLimitW.toFixed(0) + ' W' : ''}`;
-    // utilization.gpu riflette il motore 3D/compute generale, non il blocco NVENC/NVDEC dedicato
-    // che questa app usa per la codifica: utilizzo/fps dell'encoder sono l'indicatore giusto per
-    // capire se la GPU sta davvero lavorando su una compressione.
-    const encoderFpsText = (g.encoderSessionCount && g.encoderSessionCount > 0)
-      ? `${(g.encoderAvgFps ?? 0).toFixed(0)} fps &middot; ${g.encoderSessionCount.toFixed(0)} sessione/i` : '-';
-    return `
-      <div class="gpu-card">
-        <div class="gpu-name">${escapeHtml(g.name)}</div>
-        <div class="gpu-metrics">
-          ${metric('&#127777;&#65039;', 'Temperatura', g.temperatureC != null ? g.temperatureC.toFixed(0) + ' &deg;C' : '-', g.temperatureC != null ? (g.temperatureC / 90 * 100) : null)}
-          ${metric('&#9881;&#65039;', 'Utilizzo GPU', g.utilizationGpuPercent != null ? g.utilizationGpuPercent.toFixed(0) + ' %' : '-', g.utilizationGpuPercent)}
-          ${metric('&#127909;', 'Encoder (NVENC)', g.encoderUtilizationPercent != null ? g.encoderUtilizationPercent.toFixed(0) + ' %' : '-', g.encoderUtilizationPercent)}
-          ${metric('&#127916;', 'FPS encoder', encoderFpsText, null)}
-          ${metric('&#128260;', 'Decoder (NVDEC)', g.decoderUtilizationPercent != null ? g.decoderUtilizationPercent.toFixed(0) + ' %' : '-', g.decoderUtilizationPercent)}
-          ${metric('&#128202;', 'Utilizzo memoria', g.utilizationMemPercent != null ? g.utilizationMemPercent.toFixed(0) + ' %' : '-', g.utilizationMemPercent)}
-          ${metric('&#128190;', 'Memoria', memText, memPercent)}
-          ${metric('&#127744;', 'Ventola', g.fanSpeedPercent != null ? g.fanSpeedPercent.toFixed(0) + ' %' : '-', g.fanSpeedPercent)}
-          ${metric('&#9889;', 'Potenza', powerText, null)}
-        </div>
-      </div>`;
-  }).join('');
+  const seen = new Set();
+  gpus.forEach((g, i) => {
+    const key = `${g.name}#${i}`;
+    seen.add(key);
+    let entry = gpuCards.get(key);
+    if (!entry) {
+      entry = createGpuCard();
+      gpuCards.set(key, entry);
+      body.appendChild(entry.root);
+      // "Fissa" lo stato iniziale (anelli a 0) prima di animare verso il valore reale nella stessa
+      // chiamata: senza questo la transizione non avrebbe un valore di partenza da cui animare.
+      entry.root.getBoundingClientRect();
+    }
+    updateGpuCard(entry, g);
+  });
+  for (const [key, entry] of gpuCards) {
+    if (!seen.has(key)) { entry.root.remove(); gpuCards.delete(key); }
+  }
 }
+
+// Inclinazione 3D del chip al passaggio del mouse (parallasse in stile pagine prodotto Apple).
+// Delegato su #gpuBody invece che sui singoli chip perche' le card vengono create dinamicamente.
+document.getElementById('gpuBody').addEventListener('mousemove', e => {
+  const stage = e.target.closest('.chip-stage');
+  if (!stage) return;
+  const tilt = stage.querySelector('.chip-tilt');
+  const r = stage.getBoundingClientRect();
+  const px = (e.clientX - r.left) / r.width - 0.5;
+  const py = (e.clientY - r.top) / r.height - 0.5;
+  tilt.style.setProperty('--rx', `${(px * 24).toFixed(1)}deg`);
+  tilt.style.setProperty('--ry', `${(-py * 24).toFixed(1)}deg`);
+});
+document.getElementById('gpuBody').addEventListener('mouseleave', () => {
+  document.querySelectorAll('#gpuBody .chip-tilt').forEach(t => {
+    t.style.removeProperty('--rx');
+    t.style.removeProperty('--ry');
+  });
+});
 
 async function refresh() {
   let state;
@@ -648,6 +910,23 @@ accentSelect.addEventListener('change', () => {
   localStorage.setItem('vc_accent', accentSelect.value);
   applyAccent(accentSelect.value);
 });
+
+// Rivela le sezioni sotto la piega (come la guida rapida) scorrendo fino a loro, invece di farle
+// comparire tutte insieme al caricamento della pagina - un pattern tipico delle pagine prodotto
+// Apple. Il motion e' comunque azzerato globalmente se il sistema ha "Riduci movimento" attivo.
+const revealEls = document.querySelectorAll('.reveal');
+if ('IntersectionObserver' in window) {
+  const revealObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('in-view');
+      revealObserver.unobserve(entry.target);
+    });
+  }, { threshold: 0.12 });
+  revealEls.forEach(el => revealObserver.observe(el));
+} else {
+  revealEls.forEach(el => el.classList.add('in-view'));
+}
 
 refresh();
 refreshGpu();
